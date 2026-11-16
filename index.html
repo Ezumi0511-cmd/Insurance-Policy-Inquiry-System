@@ -38,7 +38,7 @@
   [hidden] { display: none !important; }
   .gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   header { background: var(--header-bg); color: var(--header-title); }
-  header .inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: flex-end; gap: 8px 24px; flex-wrap: wrap; }
+  header .inner { max-width: 1440px; margin: 0 auto; display: flex; align-items: flex-end; gap: 8px 24px; flex-wrap: wrap; }
   header h1 { margin: 0; font-size: 20px; padding-block: 14px; letter-spacing: .02em; }
   .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
   .tabs button { background: transparent; color: var(--header-fg); border: none; border-radius: 6px 6px 0 0; padding: 10px 16px; }
@@ -46,10 +46,10 @@
   .tabs button.active { background: var(--bg); color: var(--primary); font-weight: 600; }
   .me { margin-left: auto; padding-block: 10px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--header-fg); }
   .me input { width: 130px; padding: 5px 8px; font-size: 13px; }
-  main { max-width: 1200px; margin: 0 auto; padding-block: 20px; display: grid; gap: 20px; grid-template-columns: 380px minmax(0, 1fr); }
+  main { max-width: 1440px; margin: 0 auto; padding-block: 20px; display: grid; gap: 20px; grid-template-columns: 380px minmax(0, 1fr); }
   main.single { grid-template-columns: minmax(0, 1fr); }
   @media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
-  .topWrap { max-width: 1200px; margin: 0 auto; padding-top: 20px; display: grid; gap: 12px; }
+  .topWrap { max-width: 1440px; margin: 0 auto; padding-top: 20px; display: grid; gap: 12px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
   .card h2 { margin: 0 0 14px; font-size: 17px; }
   .card h3 { margin: 18px 0 6px; font-size: 15px; }
@@ -126,6 +126,24 @@
   .modal .box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; max-width: 420px; width: 100%; }
   .modal p { margin: 0 0 16px; line-height: 1.6; white-space: pre-line; }
   .modal .btns { justify-content: flex-end; margin-top: 0; }
+  /* 編輯歷程（右下角） */
+  .logBtn { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 15;
+            border-radius: 99px; padding: 9px 16px; box-shadow: 0 2px 10px rgba(0, 0, 0, .18); }
+  .logPanel { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 15;
+              width: min(420px, calc(100% - 32px)); max-height: min(70vh, 560px); display: flex; flex-direction: column;
+              background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .22); }
+  .logPanel .head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; }
+  .logPanel .head h3 { margin: 0; font-size: 15px; flex: 1; }
+  .logPanel .filter { padding: 0 14px 8px; }
+  .logPanel .filter input { padding: 6px 8px; font-size: 13px; }
+  .logPanel ol { list-style: none; margin: 0; padding: 0 14px 12px; overflow-y: auto; }
+  .logPanel li { padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.5; }
+  .logPanel li .t { color: var(--muted); font-size: 12px; }
+  .logPanel li .act { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; margin-right: 4px; background: var(--tag-bg); color: var(--muted); }
+  .logPanel li .act.新增 { background: var(--green-bg); color: var(--ok); }
+  .logPanel li .act.修改 { background: var(--blue-bg); color: var(--primary-d); }
+  .logPanel li .act.刪除 { background: var(--over-bg); color: var(--danger); }
+  .logPanel li .chg { color: var(--muted); font-size: 12px; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -156,29 +174,23 @@
 </div>
 
 <!-- ==================== 工程案契約用保單 ==================== -->
-<main id="view-p" class="gutter">
+<main id="view-p" class="single gutter">
   <section class="card">
     <h2 id="formTitle">新增保單紀錄</h2>
     <div class="editing-banner" id="editBanner" hidden>正在編輯既有紀錄</div>
     <form id="recordForm" autocomplete="off">
-      <div class="row">
+      <div class="grid4">
         <div><label for="fDateFrom">日期（起） <span class="req">*</span></label><input type="date" id="fDateFrom" required></div>
         <div><label for="fDateTo">日期（迄） <span class="req">*</span></label><input type="date" id="fDateTo" required></div>
-      </div>
-      <div class="row">
         <div><label for="fTime">時間 <span class="req">*</span></label><input type="time" id="fTime" required></div>
         <div><label for="fCase">承接案號 <span class="req">*</span></label><input type="text" id="fCase" placeholder="例如：A2026-0001" required></div>
-      </div>
-      <div class="row">
         <div><label for="fPolicy">保單號碼</label><input type="text" id="fPolicy"></div>
         <div><label for="fStatus">狀態</label><select id="fStatus"><option>履約中</option><option>已完成</option></select></div>
+        <div class="span2"><label for="fClient">客戶 / 被保險人</label><input type="text" id="fClient"></div>
+        <div class="span2"><label for="fTags">案號縮寫 / 關鍵字</label><input type="text" id="fTags" placeholder="例如：北區 TPE 車險（空白或逗號分隔）"></div>
+        <div class="span2"><label for="fNote">備註</label><textarea id="fNote" rows="2"></textarea></div>
+        <div class="span2"><label for="fFiles">附件（可多選，選取後立即上傳）</label><input type="file" id="fFiles" multiple><ul class="files" id="fileList"></ul></div>
       </div>
-      <label for="fClient">客戶 / 被保險人</label><input type="text" id="fClient">
-      <label for="fTags">案號縮寫 / 關鍵字</label><input type="text" id="fTags" placeholder="例如：北區 TPE 車險（空白或逗號分隔）">
-      <label for="fNote">備註</label><textarea id="fNote"></textarea>
-      <label for="fFiles">附件（可多選，選取後立即上傳）</label>
-      <input type="file" id="fFiles" multiple>
-      <ul class="files" id="fileList"></ul>
       <div class="btns">
         <button type="submit" class="primary" id="saveBtn">儲存</button>
         <button type="button" id="resetBtn">清空 / 取消編輯</button>
@@ -298,6 +310,12 @@
   </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
+<button type="button" class="logBtn" id="logBtn" aria-expanded="false" aria-controls="logPanel">📝 編輯歷程</button>
+<section class="logPanel" id="logPanel" hidden aria-label="編輯歷程">
+  <div class="head"><h3>編輯歷程（最近 300 筆）</h3><button type="button" class="sm" id="logExcel">匯出</button><button type="button" class="sm" id="logClose" aria-label="關閉">✕</button></div>
+  <div class="filter"><input id="logFilter" placeholder="篩選：修改者 / 案號 / 動作"></div>
+  <ol id="logList"><li class="muted">載入中…</li></ol>
+</section>
 
 <script>
 // =====================================================================
@@ -386,6 +404,65 @@ function dbErrText(e) {
   if (/fetch|network/i.test(m)) return '網路連線失敗，請稍後再試。';
   return '操作失敗：' + m;
 }
+
+// ---------- 編輯歷程（資料表 edit_log）----------
+const LOG_TABLE = 'edit_log';
+let logs = [], logReady = null;   // logReady: null=未載入, true=可用, false=資料表不存在
+const KIND_LABEL = { policy: '工程案', group: '團險', import: '匯入' };
+const FIELD_LABEL = { dateFrom: '日期起', dateTo: '日期迄', time: '時間', caseNo: '承接案號', policyNo: '保單號碼', status: '狀態',
+  client: '客戶', company: '投保單位', tags: '關鍵字', note: '備註', attachments: '附件', members: '被保險人名單' };
+function changedFields(oldR, newR) {
+  if (!oldR) return '';
+  return Object.keys(FIELD_LABEL).filter(k => JSON.stringify(oldR[k] ?? '') !== JSON.stringify(newR[k] ?? '')).map(k => {
+    if (k === 'status') return `狀態 ${oldR.status || ''}→${newR.status || ''}`;
+    if (k === 'members') return `名單 ${(oldR.members || []).length}→${(newR.members || []).length} 人`;
+    if (k === 'attachments') return `附件 ${(oldR.attachments || []).length}→${(newR.attachments || []).length} 個`;
+    return FIELD_LABEL[k];
+  }).join('、');
+}
+async function logEdit(action, kind, target, detail = '') {
+  if (!sb || logReady === false) return;
+  const row = { id: newId(), at: new Date().toISOString(), who: myName() || '（未填名字）', action, kind, target: String(target || ''), detail };
+  try {
+    const { error } = await sb.from(LOG_TABLE).insert(row);
+    if (error) throw error;
+    addLog(row);
+  } catch { /* 歷程寫入失敗不影響主要操作 */ }
+}
+function addLog(row) {
+  if (logs.some(l => l.id === row.id)) return;
+  logs.unshift(row); logs.sort((a, b) => b.at.localeCompare(a.at)); logs.length = Math.min(logs.length, 300);
+  renderLogs();
+}
+async function loadLogs() {
+  const { data, error } = await sb.from(LOG_TABLE).select('*').order('at', { ascending: false }).limit(300);
+  if (error) { logReady = false; renderLogs(); return; }
+  logReady = true; logs = data; renderLogs();
+}
+function renderLogs() {
+  if ($('logPanel').hidden) return;
+  const ol = $('logList');
+  if (logReady === false) { ol.innerHTML = '<li class="muted">尚未建立歷程資料表：請到 Supabase → SQL Editor 執行 supabase-setup.sql 的第 5 段。</li>'; return; }
+  if (logReady === null) { ol.innerHTML = '<li class="muted">載入中…</li>'; return; }
+  const kw = $('logFilter').value;
+  const list = logs.filter(l => matchTokens('', [l.who, l.action, KIND_LABEL[l.kind], l.target, l.detail], kw));
+  ol.innerHTML = list.length ? list.map(l => `<li>
+      <div class="t">${esc(fmtDT(l.at))} · <b>${esc(l.who)}</b></div>
+      <div><span class="act ${esc(l.action)}">${esc(l.action)}</span>${esc(KIND_LABEL[l.kind] || l.kind)}「${esc(l.target)}」</div>
+      ${l.detail ? `<div class="chg">${esc(l.detail)}</div>` : ''}</li>`).join('')
+    : `<li class="muted">${logs.length ? '沒有符合的紀錄' : '目前還沒有編輯紀錄。'}</li>`;
+}
+$('logBtn').onclick = () => {
+  const p = $('logPanel'); p.hidden = !p.hidden; $('logBtn').setAttribute('aria-expanded', String(!p.hidden));
+  if (!p.hidden) { renderLogs(); if (sb && logReady !== true) loadLogs(); }
+};
+$('logClose').onclick = () => { $('logPanel').hidden = true; $('logBtn').setAttribute('aria-expanded', 'false'); };
+$('logFilter').addEventListener('input', renderLogs);
+$('logExcel').onclick = () => {
+  if (!logs.length) { fail('目前沒有歷程可匯出'); return; }
+  exportSheets(`編輯歷程_${ymd(new Date())}`, [{ name: '編輯歷程', header: ['時間', '修改者', '動作', '類別', '對象', '變更內容'],
+    rows: logs.map(l => [fmtDT(l.at), l.who, l.action, KIND_LABEL[l.kind] || l.kind, l.target, l.detail || '']), cols: [17, 12, 6, 8, 20, 40] }]);
+};
 
 // ---------- 附件（存到 Supabase Storage）----------
 const MIME = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
@@ -543,6 +620,7 @@ $('recordForm').addEventListener('submit', async e => {
   try {
     await saveRec('policy', editingId || newId(), rec);
     if (old) cleanupRemoved(old.attachments, rec.attachments);
+    logEdit(old ? '修改' : '新增', 'policy', rec.caseNo, changedFields(old, rec));
     toast(editingId ? '已更新' : '已新增'); resetForm();
   } catch (err) { fail(dbErrText(err)); }
   finally { $('saveBtn').disabled = false; }
@@ -589,7 +667,7 @@ function render() {
         <button class="sm" data-edit="${esc(r.id)}">編輯</button>
         <button class="sm danger" data-del="${esc(r.id)}">刪除</button>
       </td></tr>` + (r.note ? `<tr><td></td><td colspan="7" class="muted">備註：${esc(r.note)}</td></tr>` : '');
-  }).join('') : `<tr><td colspan="8" class="empty">${cache.length ? '沒有符合條件的紀錄' : '尚無紀錄。在左側填寫日期、時間與承接案號後按「儲存」，即可新增第一筆。'}</td></tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty">${cache.length ? '沒有符合條件的紀錄' : '尚無紀錄。在上方填寫日期、時間與承接案號後按「儲存」，即可新增第一筆。'}</td></tr>`;
   $('count').textContent = `共 ${cache.length} 筆，符合 ${list.length} 筆`;
 }
 
@@ -599,7 +677,7 @@ $('tbody').addEventListener('click', async e => {
   else if (d.del) {
     const r = cache.find(x => x.id === d.del); if (!r) return;
     if (!await ask(`確定要刪除「${r.caseNo}」這筆紀錄（含附件）？刪除後所有人都看不到，無法復原。`, '刪除')) return;
-    try { await deleteRec(d.del); deleteFiles(r.attachments); if (editingId === d.del) resetForm(); toast('已刪除'); }
+    try { await deleteRec(d.del); deleteFiles(r.attachments); logEdit('刪除', 'policy', r.caseNo); if (editingId === d.del) resetForm(); toast('已刪除'); }
     catch (err) { fail(dbErrText(err)); }
   }
 });
@@ -717,6 +795,7 @@ $('gForm').addEventListener('submit', async e => {
   try {
     await saveRec('group', gEditingId || newId(), rec);
     if (old) cleanupRemoved(old.attachments, rec.attachments);
+    logEdit(old ? '修改' : '新增', 'group', `${rec.caseNo} ${rec.company}`, changedFields(old, rec));
     toast(gEditingId ? '團險保單已更新' : '團險保單已新增'); resetGForm();
   } catch (err) { fail(dbErrText(err)); }
   finally { $('gSaveBtn').disabled = false; }
@@ -793,7 +872,7 @@ $('gBody').addEventListener('click', async e => {
   else if (d.gdel) {
     const g = gCache.find(x => x.id === d.gdel); if (!g) return;
     if (!await ask(`確定要刪除團險保單「${g.caseNo}」（含 ${(g.members || []).length} 位被保險人與附件）？刪除後無法復原。`, '刪除')) return;
-    try { await deleteRec(d.gdel); deleteFiles(g.attachments); if (gEditingId === d.gdel) resetGForm(); toast('已刪除'); }
+    try { await deleteRec(d.gdel); deleteFiles(g.attachments); logEdit('刪除', 'group', `${g.caseNo} ${g.company}`); if (gEditingId === d.gdel) resetGForm(); toast('已刪除'); }
     catch (err) { fail(dbErrText(err)); }
   }
 });
@@ -1000,6 +1079,7 @@ $('importFile').onchange = async e => {
     }
     toast(`匯入完成，共 ${done} 筆`);
   } catch (err) { fail(dbErrText(err)); }
+  if (done) logEdit('匯入', 'import', f.name, `匯入 ${done} / ${total} 筆`);
 };
 
 // =====================================================================
@@ -1022,7 +1102,9 @@ $('importFile').onchange = async e => {
       if (p.eventType === 'DELETE') removeRow(p.old.id); else applyRow(p.new);
       render(); renderGroups();
     })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: LOG_TABLE }, p => { if (logReady) addLog(p.new); })
     .subscribe();
+  loadLogs();
   // 備援：每 2 分鐘重新整理一次；每小時更新到期天數
   setInterval(() => loadAll().catch(() => {}), 120000);
   setInterval(() => { render(); renderGroups(); desktopNotify(); }, 3600000);
