@@ -11,6 +11,8 @@ create table if not exists public.records (
 );
 
 -- 2. 允許「知道網址的人」不登入就能讀寫
+grant usage on schema public to anon;
+grant select, insert, update, delete on public.records to anon;
 alter table public.records enable row level security;
 drop policy if exists "public read"   on public.records;
 drop policy if exists "public insert" on public.records;
@@ -37,3 +39,26 @@ drop policy if exists "public delete attachments" on storage.objects;
 create policy "public upload attachments" on storage.objects for insert to anon with check (bucket_id = 'attachments');
 create policy "public read attachments"   on storage.objects for select to anon using (bucket_id = 'attachments');
 create policy "public delete attachments" on storage.objects for delete to anon using (bucket_id = 'attachments');
+
+-- 5. 編輯歷程（記錄誰在什麼時候新增 / 修改 / 刪除了哪一筆，並可「復原」；歷程只能新增與讀取，不能修改或刪除）
+create table if not exists public.edit_log (
+  id     text primary key,
+  at     timestamptz not null default now(),
+  who    text,
+  action text,
+  kind   text,
+  target text,
+  detail text,
+  snap   jsonb   -- 修改前的內容，供「復原」使用
+);
+alter table public.edit_log add column if not exists snap jsonb;   -- 舊版資料表補上欄位
+create index if not exists edit_log_at_idx on public.edit_log (at desc);
+grant select, insert on public.edit_log to anon;
+alter table public.edit_log enable row level security;
+drop policy if exists "public read log"   on public.edit_log;
+drop policy if exists "public insert log" on public.edit_log;
+create policy "public read log"   on public.edit_log for select to anon using (true);
+create policy "public insert log" on public.edit_log for insert to anon with check (true);
+do $$ begin
+  alter publication supabase_realtime add table public.edit_log;
+exception when duplicate_object then null; end $$;

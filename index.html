@@ -45,7 +45,8 @@
   .tabs button:hover { background: rgba(255, 255, 255, .12); }
   .tabs button.active { background: var(--bg); color: var(--primary); font-weight: 600; }
   .me { margin-left: auto; padding-block: 10px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--header-fg); }
-  .me input { width: 130px; padding: 5px 8px; font-size: 13px; }
+  .me input { width: 150px; padding: 5px 8px; font-size: 13px; }
+  .me input.need { border: 2px solid var(--danger); background: var(--over-bg); }
   main { max-width: 1440px; margin: 0 auto; padding-block: 20px; display: grid; gap: 20px; grid-template-columns: 380px minmax(0, 1fr); }
   main.single { grid-template-columns: minmax(0, 1fr); }
   @media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
@@ -130,20 +131,24 @@
   .logBtn { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 15;
             border-radius: 99px; padding: 9px 16px; box-shadow: 0 2px 10px rgba(0, 0, 0, .18); }
   .logPanel { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 15;
-              width: min(420px, calc(100% - 32px)); max-height: min(70vh, 560px); display: flex; flex-direction: column;
+              width: min(380px, calc(100% - 32px)); max-height: min(45vh, 420px); display: flex; flex-direction: column;
               background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .22); }
   .logPanel .head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; }
   .logPanel .head h3 { margin: 0; font-size: 15px; flex: 1; }
-  .logPanel .filter { padding: 0 14px 8px; }
-  .logPanel .filter input { padding: 6px 8px; font-size: 13px; }
   .logPanel ol { list-style: none; margin: 0; padding: 0 14px 12px; overflow-y: auto; }
   .logPanel li { padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.5; }
-  .logPanel li .t { color: var(--muted); font-size: 12px; }
+  .logPanel li .t { font-size: 12px; color: var(--muted); }
+  .logPanel li .t time { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .logPanel li .act { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; margin-right: 4px; background: var(--tag-bg); color: var(--muted); }
   .logPanel li .act.新增 { background: var(--green-bg); color: var(--ok); }
   .logPanel li .act.修改 { background: var(--blue-bg); color: var(--primary-d); }
   .logPanel li .act.刪除 { background: var(--over-bg); color: var(--danger); }
   .logPanel li .chg { color: var(--muted); font-size: 12px; }
+  .logPanel li .row2 { display: flex; align-items: flex-start; gap: 8px; }
+  .logPanel li .row2 > div { flex: 1; min-width: 0; }
+  .logPanel li.undone > .row2 > div { opacity: .55; text-decoration: line-through; }
+  .logPanel li .act.復原 { background: var(--alert-bg); color: var(--alert-fg); }
+  .logPanel li .done { font-size: 11px; color: var(--muted); white-space: nowrap; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -157,7 +162,7 @@
       <button type="button" data-tab="g">團險保單</button>
       <button type="button" data-tab="m">團險個人查詢</button>
     </nav>
-    <div class="me"><label for="myName" style="margin:0;color:inherit">修改者</label><input id="myName" placeholder="輸入你的名字"></div>
+    <div class="me"><label for="myName" style="margin:0;color:inherit">修改者</label><input id="myName" placeholder="必填：你的姓名" title="填入姓名後才能新增、修改、刪除，並會記錄在編輯歷程"></div>
   </div>
 </header>
 
@@ -270,7 +275,7 @@
     </div>
     <label class="chk"><input type="checkbox" id="gsDueOnly"> 只顯示 1 個月內到期 / 已逾期（含個人到期）</label>
     <div class="tablewrap"><table>
-      <thead><tr><th>保單期間</th><th>承接案號</th><th>保單號碼</th><th>投保單位</th><th class="num">人數</th><th class="num">保額合計</th><th>狀態</th><th>附件</th><th></th></tr></thead>
+      <thead><tr><th>保單期間</th><th>承接案號</th><th>保單號碼</th><th>投保單位</th><th class="num">人數（有效）</th><th class="num">有效保額合計</th><th>狀態</th><th>附件</th><th></th></tr></thead>
       <tbody id="gBody"></tbody>
     </table></div>
     <div class="count" id="gCount"></div>
@@ -286,7 +291,7 @@
 <main id="view-m" class="single gutter" hidden>
   <section class="card">
     <h2>團險個人保額查詢</h2>
-    <p class="muted" style="margin-top:-6px">依姓名區分：同一姓名在所有團險保單中的保險金額會合併計算，並依姓名排序。</p>
+    <p class="muted" style="margin-top:-6px">依姓名區分：同一姓名在所有團險保單中的金額會合併計算，並依姓名排序。只計算今天仍在保障期間內的金額，已到期或尚未生效的部分以 0 計。</p>
     <div class="search s1">
       <div><label for="psKeyword">姓名 / 身分證 / 員編 / 投保單位 / 案號</label><input type="text" id="psKeyword" placeholder="可輸入多個詞，空白分隔"></div>
       <div><button type="button" id="psClear">清除</button></div>
@@ -294,7 +299,7 @@
     <label class="chk"><input type="checkbox" id="psActiveOnly"> 只顯示目前有效保障的人</label>
     <label class="chk"><input type="checkbox" id="psDueOnly"> 只顯示 1 個月內到期 / 已逾期</label>
     <div class="tablewrap"><table>
-      <thead><tr><th>姓名</th><th>身分證 / 員編</th><th class="num">投保件數</th><th class="num">保額總額</th><th class="num">目前有效保額</th><th>保障期間（最早起 ~ 最晚迄）</th><th>到期提醒</th><th></th></tr></thead>
+      <thead><tr><th>姓名</th><th>身分證 / 員編</th><th class="num">投保件數（有效）</th><th class="num">有效保額總額</th><th>保障期間（最早起 ~ 最晚迄）</th><th>到期提醒</th><th></th></tr></thead>
       <tbody id="pBody"></tbody>
     </table></div>
     <div class="count" id="pCount"></div>
@@ -310,10 +315,9 @@
   </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
-<button type="button" class="logBtn" id="logBtn" aria-expanded="false" aria-controls="logPanel">📝 編輯歷程</button>
-<section class="logPanel" id="logPanel" hidden aria-label="編輯歷程">
-  <div class="head"><h3>編輯歷程（最近 300 筆）</h3><button type="button" class="sm" id="logExcel">匯出</button><button type="button" class="sm" id="logClose" aria-label="關閉">✕</button></div>
-  <div class="filter"><input id="logFilter" placeholder="篩選：修改者 / 案號 / 動作"></div>
+<button type="button" class="logBtn" id="logBtn" aria-expanded="true" aria-controls="logPanel">📝 收合歷程</button>
+<section class="logPanel" id="logPanel" aria-label="編輯歷程">
+  <div class="head"><h3>編輯歷程 <span class="muted" style="font-weight:400">（即時更新，最近 300 筆）</span></h3><button type="button" class="sm" id="undoLast" title="復原最近一次的編輯">↩ 返回上一步</button><button type="button" class="sm" id="logExcel">匯出</button><button type="button" class="sm" id="logClose" aria-label="關閉">✕</button></div>
   <ol id="logList"><li class="muted">載入中…</li></ol>
 </section>
 
@@ -336,6 +340,7 @@ const fmtSize = n => n < 1024 ? n + ' B' : n < 1048576 ? (n/1024).toFixed(1) + '
 const fmtAmt = n => (Number(n) || 0).toLocaleString('zh-TW');
 const pad = n => String(n).padStart(2, '0');
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmtDTs = iso => { if (!iso) return ''; const d = new Date(iso); return `${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
 const fmtDT = iso => { if (!iso) return ''; const d = new Date(iso); return `${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 let toastTimer;
@@ -357,6 +362,15 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 $('myName').value = lsGet('myName') || '';
 $('myName').addEventListener('change', () => lsSet('myName', $('myName').value.trim()));
 const myName = () => $('myName').value.trim();
+// 所有會修改資料的動作，都必須先填寫修改者姓名
+function needName() {
+  if (myName()) return true;
+  fail('請先在右上角「修改者」填入你的姓名，才能編輯。');
+  const i = $('myName'); i.classList.add('need'); i.focus();
+  return false;
+}
+$('myName').addEventListener('input', () => { const i = $('myName'); i.classList.toggle('need', !i.value.trim()); lsSet('myName', i.value.trim()); });
+if (!myName()) $('myName').classList.add('need');
 
 function downloadBlob(name, blob) {
   const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -420,44 +434,84 @@ function changedFields(oldR, newR) {
     return FIELD_LABEL[k];
   }).join('、');
 }
-async function logEdit(action, kind, target, detail = '') {
-  if (!sb || logReady === false) return;
-  const row = { id: newId(), at: new Date().toISOString(), who: myName() || '（未填名字）', action, kind, target: String(target || ''), detail };
-  try {
-    const { error } = await sb.from(LOG_TABLE).insert(row);
-    if (error) throw error;
-    addLog(row);
-  } catch { /* 歷程寫入失敗不影響主要操作 */ }
+// snap = { rid: 紀錄編號, before: 變更前的內容（新增時為 null）, afterAt: 變更後的 updatedAt（刪除時為 null）, undoOf: 復原的是哪一筆歷程 }
+const stripId = r => { if (!r) return null; const { id, ...rest } = r; return rest; };
+async function logEdit(action, kind, target, detail = '', snap = null) {
+  if (!sb) return;
+  const row = { id: newId(), at: new Date().toISOString(), who: myName(), action, kind, target: String(target || ''), detail, snap };
+  addLog(row);   // 先立即顯示
+  if (logReady === false) return;
+  try { const { error } = await sb.from(LOG_TABLE).insert(row); if (error) throw error; }
+  catch { /* 歷程寫入失敗不影響主要操作 */ }
 }
 function addLog(row) {
-  if (logs.some(l => l.id === row.id)) return;
+  if (!row || logs.some(l => l.id === row.id)) return;
   logs.unshift(row); logs.sort((a, b) => b.at.localeCompare(a.at)); logs.length = Math.min(logs.length, 300);
   renderLogs();
 }
 async function loadLogs() {
   const { data, error } = await sb.from(LOG_TABLE).select('*').order('at', { ascending: false }).limit(300);
   if (error) { logReady = false; renderLogs(); return; }
-  logReady = true; logs = data; renderLogs();
+  const local = logs; logReady = true; logs = data; local.forEach(addLog); renderLogs();
 }
 function renderLogs() {
   if ($('logPanel').hidden) return;
   const ol = $('logList');
-  if (logReady === false) { ol.innerHTML = '<li class="muted">尚未建立歷程資料表：請到 Supabase → SQL Editor 執行 supabase-setup.sql 的第 5 段。</li>'; return; }
-  if (logReady === null) { ol.innerHTML = '<li class="muted">載入中…</li>'; return; }
-  const kw = $('logFilter').value;
-  const list = logs.filter(l => matchTokens('', [l.who, l.action, KIND_LABEL[l.kind], l.target, l.detail], kw));
-  ol.innerHTML = list.length ? list.map(l => `<li>
-      <div class="t">${esc(fmtDT(l.at))} · <b>${esc(l.who)}</b></div>
+  const warn = logReady === false ? '<li class="muted" style="color:var(--danger)">尚未建立歷程資料表，紀錄不會保存：請到 Supabase → SQL Editor 執行 supabase-setup.sql 的第 5 段。</li>' : '';
+  if (logReady === null && !logs.length) { ol.innerHTML = '<li class="muted">載入中…</li>'; return; }
+  const undone = undoneIds();
+  ol.innerHTML = warn + (logs.length ? logs.map(l => {
+    const isUndone = undone.has(l.id), can = canUndo(l) && !isUndone;
+    return `<li class="${isUndone ? 'undone' : ''}"><div class="row2"><div>
+      <div class="t"><time datetime="${esc(l.at)}">${esc(fmtDTs(l.at))}</time> · ${esc(l.who)}</div>
       <div><span class="act ${esc(l.action)}">${esc(l.action)}</span>${esc(KIND_LABEL[l.kind] || l.kind)}「${esc(l.target)}」</div>
-      ${l.detail ? `<div class="chg">${esc(l.detail)}</div>` : ''}</li>`).join('')
-    : `<li class="muted">${logs.length ? '沒有符合的紀錄' : '目前還沒有編輯紀錄。'}</li>`;
+      ${l.detail ? `<div class="chg">${esc(l.detail)}</div>` : ''}</div>
+      ${can ? `<button type="button" class="sm" data-undo="${esc(l.id)}">↩ 復原</button>` : isUndone ? '<span class="done">已復原</span>' : ''}</div></li>`;
+  }).join('') : '<li class="muted">目前還沒有編輯紀錄。</li>');
+  $('undoLast').disabled = !lastUndoable();
 }
-$('logBtn').onclick = () => {
-  const p = $('logPanel'); p.hidden = !p.hidden; $('logBtn').setAttribute('aria-expanded', String(!p.hidden));
-  if (!p.hidden) { renderLogs(); if (sb && logReady !== true) loadLogs(); }
-};
-$('logClose').onclick = () => { $('logPanel').hidden = true; $('logBtn').setAttribute('aria-expanded', 'false'); };
-$('logFilter').addEventListener('input', renderLogs);
+const undoneIds = () => new Set(logs.map(l => l.snap && l.snap.undoOf).filter(Boolean));
+const canUndo = l => !!(l.snap && l.snap.rid && ['新增', '修改', '刪除'].includes(l.action) && (l.kind === 'policy' || l.kind === 'group'));
+const lastUndoable = () => { const u = undoneIds(); return logs.find(l => canUndo(l) && !u.has(l.id)) || null; };
+async function undoLog(l) {
+  if (!needName()) return;
+  if (!l || !canUndo(l) || undoneIds().has(l.id)) return;
+  if (!sb) { fail('尚未連線到資料庫。'); return; }
+  const s = l.snap, kind = l.kind;
+  const cur = (kind === 'group' ? gCache : cache).find(x => x.id === s.rid) || null;
+  const curAt = cur ? cur.updatedAt : null;
+  let msg = l.action === '新增' ? `復原 ${fmtDTs(l.at)} ${l.who} 的新增：\n刪除「${l.target}」這筆紀錄？`
+          : l.action === '修改' ? `復原 ${fmtDTs(l.at)} ${l.who} 的修改：\n把「${l.target}」恢復成修改前的內容？`
+          : `復原 ${fmtDTs(l.at)} ${l.who} 的刪除：\n把「${l.target}」加回來？`;
+  if (curAt !== (s.afterAt || null)) msg += '\n\n⚠ 這筆紀錄在那之後又被改過，復原會蓋掉之後的變更。';
+  if (!await ask(msg, '復原')) return;
+  try {
+    if (l.action === '新增') {
+      if (cur) await deleteRec(s.rid);
+      if (kind === 'policy' && editingId === s.rid) resetForm();
+      if (kind === 'group' && gEditingId === s.rid) resetGForm();
+      logEdit('復原', kind, l.target, `取消 ${fmtDTs(l.at)} ${l.who} 的新增（已刪除）`, { undoOf: l.id, rid: s.rid, before: stripId(cur), afterAt: null });
+    } else {
+      if (!s.before) { fail('這筆歷程沒有保存修改前的內容，無法復原。'); return; }
+      const data = { ...s.before, updatedAt: new Date().toISOString(), updatedBy: myName() };
+      await saveRec(kind, s.rid, data);
+      if (kind === 'policy' && editingId === s.rid) resetForm();
+      if (kind === 'group' && gEditingId === s.rid) resetGForm();
+      logEdit('復原', kind, l.target, `取消 ${fmtDTs(l.at)} ${l.who} 的${l.action}`, { undoOf: l.id, rid: s.rid, before: stripId(cur), afterAt: data.updatedAt });
+    }
+    toast('已復原');
+  } catch (err) { fail(dbErrText(err)); }
+}
+$('logList').addEventListener('click', e => { const id = e.target.dataset.undo; if (id) undoLog(logs.find(l => l.id === id)); });
+$('undoLast').onclick = () => { const l = lastUndoable(); if (l) undoLog(l); else fail('沒有可以復原的編輯'); };
+function setLogOpen(open) {
+  $('logPanel').hidden = !open; $('logBtn').setAttribute('aria-expanded', String(open));
+  $('logBtn').textContent = open ? '📝 收合歷程' : '📝 編輯歷程'; lsSet('logClosed', open ? '' : '1');
+  if (open) renderLogs();
+}
+$('logBtn').onclick = () => setLogOpen($('logPanel').hidden);
+$('logClose').onclick = () => setLogOpen(false);
+setLogOpen(lsGet('logClosed') !== '1');
 $('logExcel').onclick = () => {
   if (!logs.length) { fail('目前沒有歷程可匯出'); return; }
   exportSheets(`編輯歷程_${ymd(new Date())}`, [{ name: '編輯歷程', header: ['時間', '修改者', '動作', '類別', '對象', '變更內容'],
@@ -487,14 +541,7 @@ function attUrl(a) {
   return sb.storage.from(BUCKET).getPublicUrl(a.path, opt).data.publicUrl;
 }
 const attLink = a => a.path ? `<a href="${esc(attUrl(a))}" target="_blank" rel="noopener">📎 ${esc(a.name)}</a>` : `<span class="clip">📎 ${esc(a.name)}（檔案未上傳）</span>`;
-async function deleteFiles(list = []) {
-  const paths = list.map(a => a.path).filter(Boolean);
-  if (paths.length) { try { await sb.storage.from(BUCKET).remove(paths); } catch {} }
-}
-function cleanupRemoved(oldList = [], newList = []) {
-  const keep = new Set(newList.map(a => a.path));
-  deleteFiles(oldList.filter(a => !keep.has(a.path)));
-}
+// 刪除紀錄或移除附件時，不刪除雲端檔案，才能用「編輯歷程 → 復原」找回
 const cleanAtt = a => ({ name: a.name, size: a.size || 0, type: a.type || '', path: a.path || '' });
 
 function bindFileList(inputId, ulId, getArr, setArr) {
@@ -507,10 +554,12 @@ function bindFileList(inputId, ulId, getArr, setArr) {
   };
   $(ulId).addEventListener('click', e => {
     const r = e.target.dataset.rm; if (r === undefined) return;
+    if (!needName()) return;
     const arr = getArr(); arr.splice(r, 1); setArr(arr); render();
   });
   $(inputId).addEventListener('change', async e => {
     const files = [...e.target.files]; e.target.value = '';
+    if (!needName()) return;
     if (!sb) { fail('尚未連線到資料庫，無法上傳附件。'); return; }
     for (const f of files) {
       pending.push(f.name); render();
@@ -605,6 +654,7 @@ $('resetBtn').onclick = resetForm;
 
 $('recordForm').addEventListener('submit', async e => {
   e.preventDefault();
+  if (!needName()) return;
   if (!sb) { fail('尚未連線到資料庫。'); return; }
   if (renderFileList.busy()) { fail('附件仍在上傳中，請稍候。'); return; }
   if ($('fDateTo').value < $('fDateFrom').value) { fail('日期（迄）不可早於日期（起）'); return; }
@@ -618,15 +668,16 @@ $('recordForm').addEventListener('submit', async e => {
   };
   $('saveBtn').disabled = true;
   try {
-    await saveRec('policy', editingId || newId(), rec);
-    if (old) cleanupRemoved(old.attachments, rec.attachments);
-    logEdit(old ? '修改' : '新增', 'policy', rec.caseNo, changedFields(old, rec));
+    const rid = editingId || newId();
+    await saveRec('policy', rid, rec);
+    logEdit(old ? '修改' : '新增', 'policy', rec.caseNo, changedFields(old, rec), { rid, before: stripId(old), afterAt: rec.updatedAt });
     toast(editingId ? '已更新' : '已新增'); resetForm();
   } catch (err) { fail(dbErrText(err)); }
   finally { $('saveBtn').disabled = false; }
 });
 
 function editRecord(id) {
+  if (!needName()) return;
   const r = cache.find(x => x.id === id); if (!r) return;
   showTab('p');
   editingId = id;
@@ -675,9 +726,10 @@ $('tbody').addEventListener('click', async e => {
   const d = e.target.dataset;
   if (d.edit) editRecord(d.edit);
   else if (d.del) {
+    if (!needName()) return;
     const r = cache.find(x => x.id === d.del); if (!r) return;
-    if (!await ask(`確定要刪除「${r.caseNo}」這筆紀錄（含附件）？刪除後所有人都看不到，無法復原。`, '刪除')) return;
-    try { await deleteRec(d.del); deleteFiles(r.attachments); logEdit('刪除', 'policy', r.caseNo); if (editingId === d.del) resetForm(); toast('已刪除'); }
+    if (!await ask(`確定要刪除「${r.caseNo}」這筆紀錄（含附件）？\n刪除後可在右下角「編輯歷程」按「復原」找回。`, '刪除')) return;
+    try { await deleteRec(d.del); logEdit('刪除', 'policy', r.caseNo, '', { rid: r.id, before: stripId(r), afterAt: null }); if (editingId === d.del) resetForm(); toast('已刪除'); }
     catch (err) { fail(dbErrText(err)); }
   }
 });
@@ -707,7 +759,14 @@ const mFrom = (g, m) => m.dateFrom || g.dateFrom;
 const mTo = (g, m) => m.dateTo || g.dateTo;
 const memberState = (g, m) => dueStateOf(mTo(g, m), g.status);
 const groupState = g => worst([dueStateOf(g.dateTo, g.status), ...(g.members || []).map(m => memberState(g, m))]);
-const groupTotal = g => (g.members || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+// 有效保額：只計算「今天仍在個人保障期間內」的金額；已到期、尚未生效、已完成的保單一律歸零
+const memberPhase = (g, m) => { const t = ymd(new Date()), f = mFrom(g, m), e = mTo(g, m);
+  return g.status === '已完成' ? '已完成' : e < t ? '已到期' : f > t ? '尚未生效' : '有效'; };
+const effAmt = (g, m) => memberPhase(g, m) === '有效' ? (Number(m.amount) || 0) : 0;
+const groupTotal = g => (g.members || []).reduce((s, m) => s + effAmt(g, m), 0);
+const activeCount = g => (g.members || []).filter(m => memberPhase(g, m) === '有效').length;
+const amtCell = (g, m) => { const ph = memberPhase(g, m), a = Number(m.amount) || 0;
+  return ph === '有效' ? fmtAmt(a) : `0${a ? `<div class="muted" style="font-size:11px">原 ${fmtAmt(a)}・${ph}</div>` : ''}`; };
 
 const blankMember = () => ({ name: '', idNo: '', amount: '', dateFrom: '', dateTo: '', note: '' });
 function renderMembers() {
@@ -725,19 +784,23 @@ function renderMembers() {
 }
 function updateMemberSum() {
   const named = gMembers.filter(m => String(m.name).trim());
-  const total = named.reduce((s, m) => s + (Number(m.amount) || 0), 0);
-  $('mSum').innerHTML = `共 <b>${named.length}</b> 人，保險金額合計 <b>${fmtAmt(total)}</b> 元`;
+  const gf = { dateFrom: $('gDateFrom').value, dateTo: $('gDateTo').value, status: $('gStatus').value };
+  const ok = gf.dateFrom && gf.dateTo;
+  const total = ok ? named.reduce((s, m) => s + effAmt(gf, m), 0) : 0;
+  const act = ok ? named.filter(m => memberPhase(gf, m) === '有效').length : 0;
+  $('mSum').innerHTML = `共 <b>${named.length}</b> 人（目前有效 <b>${act}</b> 人），有效保額合計 <b>${fmtAmt(total)}</b> 元 <span class="muted">（已到期 / 尚未生效者以 0 計）</span>`;
 }
 $('mBody').addEventListener('input', e => { const { i, f } = e.target.dataset; if (i === undefined) return; gMembers[i][f] = e.target.value; updateMemberSum(); });
-$('mBody').addEventListener('click', e => { const i = e.target.dataset.mrm; if (i === undefined) return; gMembers.splice(i, 1); renderMembers(); });
+$('mBody').addEventListener('click', e => { const i = e.target.dataset.mrm; if (i === undefined || !needName()) return; gMembers.splice(i, 1); renderMembers(); });
 $('mAddBtn').onclick = () => {
+  if (!needName()) return;
   gMembers.push(blankMember()); renderMembers();
   const inputs = $('mBody').querySelectorAll('input[data-f="name"]'); if (inputs.length) inputs[inputs.length - 1].focus();
 };
 
 const M_HEADER = ['姓名', '身分證/員編', '保險金額', '個人起日', '個人迄日', '備註'];
 $('mTemplateBtn').onclick = () => exportSheets('團險名單範本', [{ name: '名單', header: M_HEADER, rows: [['王小明', 'A123456789', 1000000, '', '', '起迄留空＝同保單期間']], cols: [12, 16, 12, 12, 12, 24] }]);
-$('mImportBtn').onclick = () => { if (!window.XLSX) { fail('Excel 元件尚未載入，請重新整理頁面後再試。'); return; } $('mImportFile').click(); };
+$('mImportBtn').onclick = () => { if (!needName()) return; if (!window.XLSX) { fail('Excel 元件尚未載入，請重新整理頁面後再試。'); return; } $('mImportFile').click(); };
 const normDate = v => { const m = String(v ?? '').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m ? `${m[1]}-${pad(m[2])}-${pad(m[3])}` : ''; };
 $('mImportFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -770,9 +833,12 @@ function resetGForm() {
 }
 $('gResetBtn').onclick = resetGForm;
 $('gDateFrom').addEventListener('change', () => { $('gDateTo').min = $('gDateFrom').value; });
+['gDateFrom', 'gDateTo', 'gStatus'].forEach(id => $(id).addEventListener('change', updateMemberSum));
+$('mBody').addEventListener('change', updateMemberSum);
 
 $('gForm').addEventListener('submit', async e => {
   e.preventDefault();
+  if (!needName()) return;
   if (!sb) { fail('尚未連線到資料庫。'); return; }
   if (renderGFileList.busy()) { fail('附件仍在上傳中，請稍候。'); return; }
   const gf = $('gDateFrom').value, gt = $('gDateTo').value;
@@ -793,15 +859,16 @@ $('gForm').addEventListener('submit', async e => {
   };
   $('gSaveBtn').disabled = true;
   try {
-    await saveRec('group', gEditingId || newId(), rec);
-    if (old) cleanupRemoved(old.attachments, rec.attachments);
-    logEdit(old ? '修改' : '新增', 'group', `${rec.caseNo} ${rec.company}`, changedFields(old, rec));
+    const rid = gEditingId || newId();
+    await saveRec('group', rid, rec);
+    logEdit(old ? '修改' : '新增', 'group', `${rec.caseNo} ${rec.company}`, changedFields(old, rec), { rid, before: stripId(old), afterAt: rec.updatedAt });
     toast(gEditingId ? '團險保單已更新' : '團險保單已新增'); resetGForm();
   } catch (err) { fail(dbErrText(err)); }
   finally { $('gSaveBtn').disabled = false; }
 });
 
 function editGroup(id) {
+  if (!needName()) return;
   const g = gCache.find(x => x.id === id); if (!g) return;
   showTab('g');
   gEditingId = id;
@@ -839,7 +906,7 @@ function renderGroups() {
         ${dueMembers ? `<br><span class="left due">👤 ${dueMembers} 人個人到期</span>` : ''}</td>
       <td><b>${esc(g.caseNo)}</b>${splitTags(g.tags).map(t => `<br><span class="tag">${esc(t)}</span>`).join('')}</td>
       <td>${esc(g.policyNo) || '—'}</td><td>${esc(g.company)}</td>
-      <td class="num">${(g.members || []).length}</td><td class="num">${fmtAmt(groupTotal(g))}</td>
+      <td class="num">${(g.members || []).length}<span class="muted">（${activeCount(g)}）</span></td><td class="num total">${fmtAmt(groupTotal(g))}</td>
       <td><span class="tag ${esc(g.status)}">${esc(g.status)}</span>${whoLine(g)}</td>
       <td>${files}</td>
       <td style="white-space:nowrap">
@@ -850,19 +917,19 @@ function renderGroups() {
     if (open) {
       html += `<tr class="detail"><td colspan="9">
         ${g.note ? `<div class="muted" style="margin-top:6px">備註：${esc(g.note)}</div>` : ''}
-        <div class="tablewrap"><table class="subtable"><thead><tr><th>#</th><th>姓名</th><th>身分證 / 員編</th><th class="num">保險金額</th><th>個人期間</th><th>提醒</th><th>備註</th></tr></thead><tbody>
+        <div class="tablewrap"><table class="subtable"><thead><tr><th>#</th><th>姓名</th><th>身分證 / 員編</th><th class="num">有效保額</th><th>個人期間</th><th>提醒</th><th>備註</th></tr></thead><tbody>
         ${(g.members || []).map((m, i) => { const s = memberState(g, m); return `<tr class="${s}">
-          <td class="muted">${i + 1}</td><td>${esc(m.name)}</td><td>${esc(m.idNo) || '—'}</td><td class="num">${fmtAmt(m.amount)}</td>
+          <td class="muted">${i + 1}</td><td>${esc(m.name)}</td><td>${esc(m.idNo) || '—'}</td><td class="num">${amtCell(g, m)}</td>
           <td style="white-space:nowrap">${esc(mFrom(g, m))} ~ ${esc(mTo(g, m))}${m.dateFrom || m.dateTo ? '' : ' <span class="muted">(同保單)</span>'}</td>
           <td>${s ? `<span class="left ${s}">${leftTextOf(mTo(g, m))}</span>` : ''}</td><td class="muted">${esc(m.note)}</td></tr>`; }).join('')
           || '<tr><td colspan="7" class="empty" style="padding:12px">尚無被保險人</td></tr>'}
-        <tr><td colspan="3" class="total">合計</td><td class="num total">${fmtAmt(groupTotal(g))}</td><td colspan="3"></td></tr>
+        <tr><td colspan="3" class="total">有效保額合計</td><td class="num total">${fmtAmt(groupTotal(g))}</td><td colspan="3"></td></tr>
         </tbody></table></div></td></tr>`;
     }
     return html;
   }).join('') : `<tr><td colspan="9" class="empty">${gCache.length ? '沒有符合條件的團險保單' : '尚無團險保單。在上方填寫承接案號、投保單位與保單期間，加入被保險人後儲存。'}</td></tr>`;
   const people = gList.reduce((s, g) => s + (g.members || []).length, 0);
-  $('gCount').textContent = `共 ${gCache.length} 張，符合 ${gList.length} 張（被保險人 ${people} 人次，保額合計 ${fmtAmt(gList.reduce((s, g) => s + groupTotal(g), 0))} 元）`;
+  $('gCount').textContent = `共 ${gCache.length} 張，符合 ${gList.length} 張（被保險人 ${people} 人次，有效保額合計 ${fmtAmt(gList.reduce((s, g) => s + groupTotal(g), 0))} 元）`;
 }
 
 $('gBody').addEventListener('click', async e => {
@@ -870,9 +937,10 @@ $('gBody').addEventListener('click', async e => {
   if (d.gexp) { gExpanded.has(d.gexp) ? gExpanded.delete(d.gexp) : gExpanded.add(d.gexp); renderGroups(); }
   else if (d.gedit) editGroup(d.gedit);
   else if (d.gdel) {
+    if (!needName()) return;
     const g = gCache.find(x => x.id === d.gdel); if (!g) return;
-    if (!await ask(`確定要刪除團險保單「${g.caseNo}」（含 ${(g.members || []).length} 位被保險人與附件）？刪除後無法復原。`, '刪除')) return;
-    try { await deleteRec(d.gdel); deleteFiles(g.attachments); logEdit('刪除', 'group', `${g.caseNo} ${g.company}`); if (gEditingId === d.gdel) resetGForm(); toast('已刪除'); }
+    if (!await ask(`確定要刪除團險保單「${g.caseNo}」（含 ${(g.members || []).length} 位被保險人與附件）？\n刪除後可在右下角「編輯歷程」按「復原」找回。`, '刪除')) return;
+    try { await deleteRec(d.gdel); logEdit('刪除', 'group', `${g.caseNo} ${g.company}`, '', { rid: g.id, before: stripId(g), afterAt: null }); if (gEditingId === d.gdel) resetGForm(); toast('已刪除'); }
     catch (err) { fail(dbErrText(err)); }
   }
 });
@@ -884,16 +952,16 @@ $('gExcelBtn').onclick = () => {
   if (!gList.length) { fail('目前沒有可匯出的團險保單'); return; }
   exportSheets(`團險保單_${ymd(new Date())}`, [{
     name: '團險保單',
-    header: ['承接案號', '案號縮寫／關鍵字', '團險保單號碼', '投保單位', '保單起日', '保單迄日', '狀態', '到期提醒', '人數', '保額合計', '附件', '備註'],
+    header: ['承接案號', '案號縮寫／關鍵字', '團險保單號碼', '投保單位', '保單起日', '保單迄日', '狀態', '到期提醒', '人數', '目前有效人數', '有效保額合計', '附件', '備註'],
     rows: gList.map(g => { const s = dueStateOf(g.dateTo, g.status); return [g.caseNo, g.tags || '', g.policyNo || '', g.company, g.dateFrom, g.dateTo, g.status,
-      s ? leftTextOf(g.dateTo) : '', (g.members || []).length, groupTotal(g), (g.attachments || []).map(a => a.name).join('、'), g.note || '']; }),
-    cols: [14, 16, 16, 20, 12, 12, 8, 12, 6, 14, 30, 30],
+      s ? leftTextOf(g.dateTo) : '', (g.members || []).length, activeCount(g), groupTotal(g), (g.attachments || []).map(a => a.name).join('、'), g.note || '']; }),
+    cols: [14, 16, 16, 20, 12, 12, 8, 12, 6, 10, 14, 30, 30],
   }, {
     name: '被保險人明細',
-    header: ['承接案號', '團險保單號碼', '投保單位', '姓名', '身分證/員編', '保險金額', '個人起日', '個人迄日', '到期提醒', '保單狀態', '備註'],
+    header: ['承接案號', '團險保單號碼', '投保單位', '姓名', '身分證/員編', '有效保額', '原保險金額', '個人起日', '個人迄日', '目前狀態', '到期提醒', '備註'],
     rows: gList.flatMap(g => (g.members || []).map(m => { const s = memberState(g, m); return [g.caseNo, g.policyNo || '', g.company, m.name, m.idNo || '',
-      Number(m.amount) || 0, mFrom(g, m), mTo(g, m), s ? leftTextOf(mTo(g, m)) : '', g.status, m.note || '']; })),
-    cols: [14, 16, 20, 10, 14, 12, 12, 12, 12, 8, 24],
+      effAmt(g, m), Number(m.amount) || 0, mFrom(g, m), mTo(g, m), memberPhase(g, m), s ? leftTextOf(mTo(g, m)) : '', m.note || '']; })),
+    cols: [14, 16, 20, 10, 14, 12, 12, 12, 12, 8, 12, 24],
   }]);
 };
 
@@ -909,15 +977,14 @@ function buildPersons() {
     if (!map.has(key)) map.set(key, { key, name: m.name, ids: new Set(), items: [] });
     const p = map.get(key);
     if (m.idNo) p.ids.add(m.idNo);
-    const from = mFrom(g, m), to = mTo(g, m), amount = Number(m.amount) || 0;
-    const active = g.status !== '已完成' && from <= today && to >= today;
-    p.items.push({ g, m, from, to, amount, active, st: memberState(g, m) });
+    const from = mFrom(g, m), to = mTo(g, m), phase = memberPhase(g, m), active = phase === '有效';
+    p.items.push({ g, m, from, to, amount: effAmt(g, m), orig: Number(m.amount) || 0, phase, active, st: memberState(g, m) });
   }
   return [...map.values()].map(p => {
     p.idNo = [...p.ids].join('、');
     p.items.sort((a, b) => String(a.from).localeCompare(String(b.from)));
-    p.total = p.items.reduce((s, i) => s + i.amount, 0);
-    p.activeTotal = p.items.filter(i => i.active).reduce((s, i) => s + i.amount, 0);
+    p.total = p.items.reduce((s, i) => s + i.amount, 0);   // 只含有效期間內的金額
+    p.activeCount = p.items.filter(i => i.active).length;
     p.minFrom = p.items.reduce((s, i) => i.from < s ? i.from : s, p.items[0].from);
     p.maxTo = p.items.reduce((s, i) => i.to > s ? i.to : s, p.items[0].to);
     p.st = worst(p.items.map(i => i.st));
@@ -926,7 +993,7 @@ function buildPersons() {
   }).sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
 }
 function renderPersons() {
-  if (!gLoaded) { $('pBody').innerHTML = '<tr><td colspan="8" class="empty">資料載入中…</td></tr>'; $('pCount').textContent = ''; return; }
+  if (!gLoaded) { $('pBody').innerHTML = '<tr><td colspan="7" class="empty">資料載入中…</td></tr>'; $('pCount').textContent = ''; return; }
   const all = buildPersons(), today = ymd(new Date());
   const kw = $('psKeyword').value, activeOnly = $('psActiveOnly').checked, dueOnly = $('psDueOnly').checked;
   pList = all.filter(p => (!activeOnly || p.items.some(i => i.active)) && (!dueOnly || p.st) &&
@@ -935,24 +1002,24 @@ function renderPersons() {
     const open = pExpanded.has(p.key);
     let html = `<tr class="clickable ${p.st}">
       <td><b>${esc(p.name)}</b></td><td>${esc(p.idNo) || '—'}</td>
-      <td class="num">${p.items.length}</td><td class="num total">${fmtAmt(p.total)}</td><td class="num">${fmtAmt(p.activeTotal)}</td>
+      <td class="num">${p.items.length}<span class="muted">（${p.activeCount}）</span></td><td class="num total">${fmtAmt(p.total)}</td>
       <td style="white-space:nowrap">${esc(p.minFrom)} ~ ${esc(p.maxTo)}</td>
       <td>${p.nextDue ? `<span class="left ${p.nextDue.st}">⏰ ${esc(p.nextDue.g.caseNo)} ${leftTextOf(p.nextDue.to)}</span>` : ''}</td>
       <td><button class="sm" data-pexp="${idx}">${open ? '收合' : '明細'}</button></td></tr>`;
     if (open) {
-      html += `<tr class="detail"><td colspan="8"><div class="tablewrap">
-        <table class="subtable"><thead><tr><th>承接案號</th><th>身分證 / 員編</th><th>團險保單號碼</th><th>投保單位</th><th class="num">保險金額</th><th>個人期間</th><th>狀態</th><th>提醒</th><th></th></tr></thead><tbody>
+      html += `<tr class="detail"><td colspan="7"><div class="tablewrap">
+        <table class="subtable"><thead><tr><th>承接案號</th><th>身分證 / 員編</th><th>團險保單號碼</th><th>投保單位</th><th class="num">有效保額</th><th>個人期間</th><th>狀態</th><th>提醒</th><th></th></tr></thead><tbody>
         ${p.items.map(i => `<tr class="${i.st}">
           <td>${esc(i.g.caseNo)}</td><td>${esc(i.m.idNo) || '—'}</td><td>${esc(i.g.policyNo) || '—'}</td><td>${esc(i.g.company)}</td>
-          <td class="num">${fmtAmt(i.amount)}</td><td style="white-space:nowrap">${esc(i.from)} ~ ${esc(i.to)}</td>
-          <td>${i.active ? '<span class="tag 有效">有效中</span>' : `<span class="tag ${esc(i.g.status)}">${i.g.status === '已完成' ? '已完成' : (i.from > today ? '尚未生效' : '已過期')}</span>`}</td>
+          <td class="num">${amtCell(i.g, i.m)}</td><td style="white-space:nowrap">${esc(i.from)} ~ ${esc(i.to)}</td>
+          <td>${i.active ? '<span class="tag 有效">有效中</span>' : `<span class="tag">${esc(i.phase)}</span>`}</td>
           <td>${i.st ? `<span class="left ${i.st}">${leftTextOf(i.to)}</span>` : ''}</td>
           <td><button class="sm" data-pgo="${esc(i.g.id)}">開啟保單</button></td></tr>`).join('')}
-        <tr><td colspan="4" class="total">合計</td><td class="num total">${fmtAmt(p.total)}</td><td colspan="4" class="muted">目前有效：${fmtAmt(p.activeTotal)}</td></tr>
+        <tr><td colspan="4" class="total">有效保額合計</td><td class="num total">${fmtAmt(p.total)}</td><td colspan="4" class="muted">已到期 / 尚未生效的金額以 0 計</td></tr>
         </tbody></table></div></td></tr>`;
     }
     return html;
-  }).join('') : `<tr><td colspan="8" class="empty">${all.length ? '沒有符合條件的人員' : '尚無團險被保險人資料。在「團險保單」分頁加入名單後，這裡會自動彙總每個人的保額。'}</td></tr>`;
+  }).join('') : `<tr><td colspan="7" class="empty">${all.length ? '沒有符合條件的人員' : '尚無團險被保險人資料。在「團險保單」分頁加入名單後，這裡會自動彙總每個人的保額。'}</td></tr>`;
   $('pCount').textContent = `共 ${all.length} 人，符合 ${pList.length} 人`;
 }
 $('pBody').addEventListener('click', e => {
@@ -969,14 +1036,14 @@ $('pExcelBtn').onclick = () => {
   if (!pList.length) { fail('目前沒有可匯出的人員'); return; }
   exportSheets(`團險個人保額_${ymd(new Date())}`, [{
     name: '個人保額彙總',
-    header: ['姓名', '身分證/員編', '投保件數', '保額總額', '目前有效保額', '最早起日', '最晚迄日', '到期提醒'],
-    rows: pList.map(p => [p.name, p.idNo || '', p.items.length, p.total, p.activeTotal, p.minFrom, p.maxTo, p.nextDue ? `${p.nextDue.g.caseNo} ${leftTextOf(p.nextDue.to)}` : '']),
+    header: ['姓名', '身分證/員編', '投保件數', '有效件數', '有效保額總額', '最早起日', '最晚迄日', '到期提醒'],
+    rows: pList.map(p => [p.name, p.idNo || '', p.items.length, p.activeCount, p.total, p.minFrom, p.maxTo, p.nextDue ? `${p.nextDue.g.caseNo} ${leftTextOf(p.nextDue.to)}` : '']),
     cols: [10, 14, 8, 14, 14, 12, 12, 24],
   }, {
     name: '個人投保明細',
-    header: ['姓名', '身分證/員編', '承接案號', '團險保單號碼', '投保單位', '保險金額', '個人起日', '個人迄日', '是否有效', '到期提醒'],
-    rows: pList.flatMap(p => p.items.map(i => [p.name, i.m.idNo || '', i.g.caseNo, i.g.policyNo || '', i.g.company, i.amount, i.from, i.to, i.active ? '有效中' : '', i.st ? leftTextOf(i.to) : ''])),
-    cols: [10, 14, 14, 16, 20, 12, 12, 12, 8, 12],
+    header: ['姓名', '身分證/員編', '承接案號', '團險保單號碼', '投保單位', '有效保額', '原保險金額', '個人起日', '個人迄日', '目前狀態', '到期提醒'],
+    rows: pList.flatMap(p => p.items.map(i => [p.name, i.m.idNo || '', i.g.caseNo, i.g.policyNo || '', i.g.company, i.amount, i.orig, i.from, i.to, i.phase, i.st ? leftTextOf(i.to) : ''])),
+    cols: [10, 14, 14, 16, 20, 12, 12, 12, 12, 8, 12],
   }]);
 };
 
@@ -1038,7 +1105,7 @@ function desktopNotify() {
 // =====================================================================
 document.querySelectorAll('.exportBackup').forEach(b => b.onclick = () =>
   downloadBlob(`保險單資料備份_${ymd(new Date())}.json`, new Blob([JSON.stringify({ version: 4, records: cache, groups: gCache })], { type: 'application/json' })));
-document.querySelectorAll('.importBackup').forEach(b => b.onclick = () => $('importFile').click());
+document.querySelectorAll('.importBackup').forEach(b => b.onclick = () => { if (needName()) $('importFile').click(); });
 
 function dataUrlToBlob(u) {
   const [h, b] = String(u).split(','); const s = atob(b || ''); const arr = new Uint8Array(s.length);
@@ -1057,6 +1124,7 @@ async function convertAtts(list = []) {
 }
 $('importFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (!needName()) return;
   if (!sb) { fail('尚未連線到資料庫。'); return; }
   let raw;
   try { raw = JSON.parse(await f.text()); } catch { fail('匯入失敗：檔案格式不正確'); return; }
