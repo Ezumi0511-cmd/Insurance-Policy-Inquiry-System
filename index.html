@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>保險單追蹤系統</title>
+<style>
+  :root {
+    --bg: #f3f5f9; --card: #ffffff; --text: #1d2633; --muted: #667386; --line: #dbe1e9;
+    --input: #ffffff; --hover: #eef2f7; --th: #f6f8fb; --focus: #b9cdf6;
+    --primary: #2457c5; --primary-d: #1b449d; --on-primary: #ffffff;
+    --danger: #c62828; --ok: #1e8a4c; --warn: #b86a00;
+    --blue-bg: #e2ebfc; --green-bg: #daf2e3; --tag-bg: #eceff4;
+    --alert-bg: #fff6e5; --alert-line: #f5d49a; --alert-fg: #8a4b00; --kind-bg: #fbe3bb;
+    --due-bg: #fff9ee; --over-bg: #fff0f0; --detail-bg: #f6f8fb;
+    --header-bg: #1f4fb8; --header-fg: #dfe8ff; --header-title: #ffffff;
+    --toast-bg: #1d2633; --toast-fg: #ffffff; --overlay: rgba(15, 23, 42, .45);
+    --font: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121821; --card: #1a222e; --text: #e3e8ef; --muted: #94a1b3; --line: #2c3644;
+      --input: #141b25; --hover: #222c3a; --th: #1f2834; --focus: #2f4f8f;
+      --primary: #5b8def; --primary-d: #8db0f7; --on-primary: #0d1420;
+      --danger: #f07070; --ok: #5fcf8c; --warn: #f0b04d;
+      --blue-bg: #1f3157; --green-bg: #173a28; --tag-bg: #273140;
+      --alert-bg: #2b2213; --alert-line: #5a4520; --alert-fg: #f3c77a; --kind-bg: #47391d;
+      --due-bg: #2a2416; --over-bg: #2e1b1d; --detail-bg: #161d27;
+      --header-bg: #172a4d; --header-fg: #b9c9ea;
+      --toast-bg: #e3e8ef; --toast-fg: #121821; --overlay: rgba(0, 0, 0, .6);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 15px; }
+  a { color: var(--primary); }
+  [hidden] { display: none !important; }
+  .gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header { background: var(--header-bg); color: var(--header-title); }
+  header .inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: flex-end; gap: 8px 24px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 20px; padding-block: 14px; letter-spacing: .02em; }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tabs button { background: transparent; color: var(--header-fg); border: none; border-radius: 6px 6px 0 0; padding: 10px 16px; }
+  .tabs button:hover { background: rgba(255, 255, 255, .12); }
+  .tabs button.active { background: var(--bg); color: var(--primary); font-weight: 600; }
+  .me { margin-left: auto; padding-block: 10px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--header-fg); }
+  .me input { width: 130px; padding: 5px 8px; font-size: 13px; }
+  main { max-width: 1200px; margin: 0 auto; padding-block: 20px; display: grid; gap: 20px; grid-template-columns: 380px minmax(0, 1fr); }
+  main.single { grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .topWrap { max-width: 1200px; margin: 0 auto; padding-top: 20px; display: grid; gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+  .card h2 { margin: 0 0 14px; font-size: 17px; }
+  .card h3 { margin: 18px 0 6px; font-size: 15px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  label .req { color: var(--danger); }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: var(--input); color: var(--text); }
+  input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--primary); }
+  textarea { resize: vertical; min-height: 60px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 12px; }
+  .grid4 .span2 { grid-column: span 2; }
+  @media (max-width: 800px) { .grid4 { grid-template-columns: 1fr 1fr; } }
+  .btns { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+  button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+  button:hover { background: var(--hover); }
+  button:disabled { opacity: .55; cursor: default; }
+  button.primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  button.primary:hover { background: var(--primary-d); }
+  button.danger { color: var(--danger); }
+  button.sm { padding: 4px 9px; font-size: 13px; }
+  .search { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 10px; align-items: end; }
+  .search.s4 { grid-template-columns: repeat(4, minmax(0, 1fr)) auto; }
+  .search.s1 { grid-template-columns: minmax(0, 1fr) auto; }
+  @media (max-width: 700px) { .search, .search.s4 { grid-template-columns: 1fr 1fr; } }
+  .search label { margin-top: 0; }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin-top: 14px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; background: var(--th); white-space: nowrap; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  tr.clickable:hover > td { background: var(--hover); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; white-space: nowrap; background: var(--tag-bg); color: var(--muted); }
+  .tag.履約中 { background: var(--blue-bg); color: var(--primary-d); }
+  .tag.已完成, .tag.有效 { background: var(--green-bg); color: var(--ok); }
+  .files { list-style: none; padding: 0; margin: 8px 0 0; }
+  .files li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+  .files li .name { flex: 1; word-break: break-all; min-width: 0; }
+  .files li .size { color: var(--muted); }
+  .files li.pending { color: var(--muted); border-style: dashed; }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; }
+  .count { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .who { color: var(--muted); font-size: 12px; margin-top: 4px; white-space: nowrap; }
+  .editing-banner { background: var(--alert-bg); border: 1px solid var(--alert-line); color: var(--alert-fg); padding: 6px 10px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; }
+  .note { border-radius: 10px; padding: 12px 16px; font-size: 14px; background: var(--card); border: 1px solid var(--line); color: var(--muted); }
+  .note.err { background: var(--over-bg); border-color: var(--danger); color: var(--danger); }
+  .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--toast-bg); color: var(--toast-fg);
+           padding: 10px 18px; border-radius: 8px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 20; max-width: calc(100% - 32px); }
+  .toast.show { opacity: 1; }
+  .toast.err { background: var(--danger); color: #fff; }
+  .clip { font-size: 13px; color: var(--muted); }
+  .alert { background: var(--alert-bg); border: 1px solid var(--alert-line); border-radius: 10px; padding: 14px 18px; }
+  .alert h3 { margin: 0 0 8px; font-size: 16px; color: var(--alert-fg); }
+  .alert ul { margin: 0; padding-left: 20px; max-height: 220px; overflow-y: auto; }
+  .alert li { margin: 3px 0; }
+  .alert a { color: var(--alert-fg); }
+  .alert .btns { margin-top: 10px; }
+  .kind { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--kind-bg); color: var(--alert-fg); margin-right: 4px; }
+  tr.due > td { background: var(--due-bg); }
+  tr.overdue > td { background: var(--over-bg); }
+  .left { display: inline-block; font-size: 12px; margin-top: 3px; font-weight: 600; }
+  .left.due { color: var(--warn); }
+  .left.overdue { color: var(--danger); }
+  .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); margin: 12px 16px 0 0; cursor: pointer; }
+  .chk input { width: auto; }
+  .mtable td { padding: 4px; }
+  .mtable input { padding: 5px 6px; font-size: 13px; min-width: 80px; }
+  .mtable input[type=number] { min-width: 100px; text-align: right; }
+  .msum { margin-top: 8px; font-size: 14px; }
+  .msum b, .total { color: var(--primary-d); font-weight: 700; }
+  tr.detail > td { background: var(--detail-bg); padding: 4px 12px 12px; }
+  .subtable { margin-top: 6px; font-size: 13px; background: var(--card); }
+  .modal { position: fixed; inset: 0; background: var(--overlay); display: grid; place-items: center; z-index: 30; padding: 16px; }
+  .modal .box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; max-width: 420px; width: 100%; }
+  .modal p { margin: 0 0 16px; line-height: 1.6; white-space: pre-line; }
+  .modal .btns { justify-content: flex-end; margin-top: 0; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="inner gutter">
+    <h1>保險單追蹤系統</h1>
+    <nav class="tabs">
+      <button type="button" data-tab="p">工程案契約用保單</button>
+      <button type="button" data-tab="g">團險保單</button>
+      <button type="button" data-tab="m">團險個人查詢</button>
+    </nav>
+    <div class="me"><label for="myName" style="margin:0;color:inherit">修改者</label><input id="myName" placeholder="輸入你的名字"></div>
+  </div>
+</header>
+
+<div class="topWrap gutter">
+  <div class="note" id="connMsg">正在連線資料庫…</div>
+  <section class="alert" id="alertBox" hidden>
+    <h3 id="alertTitle"></h3>
+    <ul id="alertList"></ul>
+    <div class="btns">
+      <button type="button" class="sm" id="showDueBtn">只顯示這些保單</button>
+      <button type="button" class="sm" id="notifyBtn" hidden>開啟桌面通知</button>
+    </div>
+  </section>
+</div>
+
+<!-- ==================== 工程案契約用保單 ==================== -->
+<main id="view-p" class="gutter">
+  <section class="card">
+    <h2 id="formTitle">新增保單紀錄</h2>
+    <div class="editing-banner" id="editBanner" hidden>正在編輯既有紀錄</div>
+    <form id="recordForm" autocomplete="off">
+      <div class="row">
+        <div><label for="fDateFrom">日期（起） <span class="req">*</span></label><input type="date" id="fDateFrom" required></div>
+        <div><label for="fDateTo">日期（迄） <span class="req">*</span></label><input type="date" id="fDateTo" required></div>
+      </div>
+      <div class="row">
+        <div><label for="fTime">時間 <span class="req">*</span></label><input type="time" id="fTime" required></div>
+        <div><label for="fCase">承接案號 <span class="req">*</span></label><input type="text" id="fCase" placeholder="例如：A2026-0001" required></div>
+      </div>
+      <div class="row">
+        <div><label for="fPolicy">保單號碼</label><input type="text" id="fPolicy"></div>
+        <div><label for="fStatus">狀態</label><select id="fStatus"><option>履約中</option><option>已完成</option></select></div>
+      </div>
+      <label for="fClient">客戶 / 被保險人</label><input type="text" id="fClient">
+      <label for="fTags">案號縮寫 / 關鍵字</label><input type="text" id="fTags" placeholder="例如：北區 TPE 車險（空白或逗號分隔）">
+      <label for="fNote">備註</label><textarea id="fNote"></textarea>
+      <label for="fFiles">附件（可多選，選取後立即上傳）</label>
+      <input type="file" id="fFiles" multiple>
+      <ul class="files" id="fileList"></ul>
+      <div class="btns">
+        <button type="submit" class="primary" id="saveBtn">儲存</button>
+        <button type="button" id="resetBtn">清空 / 取消編輯</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>查詢</h2>
+    <div class="search">
+      <div><label for="sDateFrom">日期（起）</label><input type="date" id="sDateFrom"></div>
+      <div><label for="sDateTo">日期（迄）</label><input type="date" id="sDateTo"></div>
+      <div><label for="sTime">時間</label><input type="time" id="sTime"></div>
+      <div><label for="sCase">承接案號</label><input type="text" id="sCase" placeholder="可輸入部分"></div>
+      <div><label for="sKeyword">其他關鍵字</label><input type="text" id="sKeyword" placeholder="案號縮寫/關鍵字/保單號/客戶/備註" title="可輸入多個詞（空白分隔，需全部符合）。案號縮寫：依序輸入案號中的字元即可，例如 A261 可找到 A2026-0001"></div>
+      <div><button type="button" id="clearSearch">清除</button></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="sDueOnly"> 只顯示 1 個月內到期 / 已逾期（履約中）</label>
+    <div class="tablewrap"><table>
+      <thead><tr><th>日期（起~迄）</th><th>時間</th><th>承接案號</th><th>保單號碼</th><th>客戶</th><th>狀態</th><th>附件</th><th></th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    <div class="count" id="count"></div>
+    <div class="btns">
+      <button type="button" class="primary" id="excelBtn">匯出 Excel</button>
+      <button type="button" class="exportBackup">匯出資料備份</button>
+      <button type="button" class="importBackup">匯入備份</button>
+    </div>
+  </section>
+</main>
+
+<!-- ==================== 團險保單 ==================== -->
+<main id="view-g" class="single gutter" hidden>
+  <section class="card">
+    <h2 id="gFormTitle">新增團險保單</h2>
+    <div class="editing-banner" id="gEditBanner" hidden>正在編輯既有團險保單</div>
+    <form id="gForm" autocomplete="off">
+      <div class="grid4">
+        <div><label for="gCase">承接案號 <span class="req">*</span></label><input type="text" id="gCase" required placeholder="例如：G2026-0001"></div>
+        <div><label for="gPolicy">團險保單號碼</label><input type="text" id="gPolicy"></div>
+        <div class="span2"><label for="gCompany">投保單位（公司 / 團體） <span class="req">*</span></label><input type="text" id="gCompany" required></div>
+        <div><label for="gDateFrom">保單期間（起） <span class="req">*</span></label><input type="date" id="gDateFrom" required></div>
+        <div><label for="gDateTo">保單期間（迄） <span class="req">*</span></label><input type="date" id="gDateTo" required></div>
+        <div><label for="gStatus">狀態</label><select id="gStatus"><option>履約中</option><option>已完成</option></select></div>
+        <div><label for="gTags">案號縮寫 / 關鍵字</label><input type="text" id="gTags" placeholder="空白或逗號分隔"></div>
+        <div class="span2"><label for="gNote">備註</label><textarea id="gNote" rows="2"></textarea></div>
+        <div class="span2"><label for="gFiles">附件（可多選，選取後立即上傳）</label><input type="file" id="gFiles" multiple><ul class="files" id="gFileList"></ul></div>
+      </div>
+      <h3>被保險人名單</h3>
+      <p class="muted" style="margin:0">個人的起迄日期留空，代表與整張保單期間相同；若個人加保、退保日期不同，請個別填寫。</p>
+      <div class="tablewrap"><table class="mtable">
+        <thead><tr><th>#</th><th>姓名 *</th><th>身分證 / 員編</th><th class="num">保險金額</th><th>個人起日</th><th>個人迄日</th><th>備註</th><th></th></tr></thead>
+        <tbody id="mBody"></tbody>
+      </table></div>
+      <div class="msum" id="mSum"></div>
+      <div class="btns">
+        <button type="button" id="mAddBtn">＋ 新增一位</button>
+        <button type="button" id="mImportBtn">從 Excel 匯入名單</button>
+        <button type="button" class="sm" id="mTemplateBtn">下載名單範本</button>
+        <input type="file" id="mImportFile" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+      <div class="btns">
+        <button type="submit" class="primary" id="gSaveBtn">儲存團險保單</button>
+        <button type="button" id="gResetBtn">清空 / 取消編輯</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>團險保單查詢</h2>
+    <div class="search s4">
+      <div><label for="gsDateFrom">期間（起）</label><input type="date" id="gsDateFrom"></div>
+      <div><label for="gsDateTo">期間（迄）</label><input type="date" id="gsDateTo"></div>
+      <div><label for="gsCase">承接案號</label><input type="text" id="gsCase" placeholder="可輸入部分"></div>
+      <div><label for="gsKeyword">其他關鍵字</label><input type="text" id="gsKeyword" placeholder="縮寫/保單號/投保單位/人員姓名"></div>
+      <div><button type="button" id="gsClear">清除</button></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="gsDueOnly"> 只顯示 1 個月內到期 / 已逾期（含個人到期）</label>
+    <div class="tablewrap"><table>
+      <thead><tr><th>保單期間</th><th>承接案號</th><th>保單號碼</th><th>投保單位</th><th class="num">人數</th><th class="num">保額合計</th><th>狀態</th><th>附件</th><th></th></tr></thead>
+      <tbody id="gBody"></tbody>
+    </table></div>
+    <div class="count" id="gCount"></div>
+    <div class="btns">
+      <button type="button" class="primary" id="gExcelBtn">匯出 Excel</button>
+      <button type="button" class="exportBackup">匯出資料備份</button>
+      <button type="button" class="importBackup">匯入備份</button>
+    </div>
+  </section>
+</main>
+
+<!-- ==================== 團險個人查詢 ==================== -->
+<main id="view-m" class="single gutter" hidden>
+  <section class="card">
+    <h2>團險個人保額查詢</h2>
+    <p class="muted" style="margin-top:-6px">依姓名區分：同一姓名在所有團險保單中的保險金額會合併計算，並依姓名排序。</p>
+    <div class="search s1">
+      <div><label for="psKeyword">姓名 / 身分證 / 員編 / 投保單位 / 案號</label><input type="text" id="psKeyword" placeholder="可輸入多個詞，空白分隔"></div>
+      <div><button type="button" id="psClear">清除</button></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="psActiveOnly"> 只顯示目前有效保障的人</label>
+    <label class="chk"><input type="checkbox" id="psDueOnly"> 只顯示 1 個月內到期 / 已逾期</label>
+    <div class="tablewrap"><table>
+      <thead><tr><th>姓名</th><th>身分證 / 員編</th><th class="num">投保件數</th><th class="num">保額總額</th><th class="num">目前有效保額</th><th>保障期間（最早起 ~ 最晚迄）</th><th>到期提醒</th><th></th></tr></thead>
+      <tbody id="pBody"></tbody>
+    </table></div>
+    <div class="count" id="pCount"></div>
+    <div class="btns"><button type="button" class="primary" id="pExcelBtn">匯出 Excel</button></div>
+  </section>
+</main>
+
+<input type="file" id="importFile" accept=".json" hidden>
+<div class="modal" id="askModal" hidden>
+  <div class="box" role="dialog" aria-modal="true">
+    <p id="askMsg"></p>
+    <div class="btns"><button type="button" id="askCancel">取消</button><button type="button" class="primary" id="askOk">確定</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// =====================================================================
+// ★ Supabase 設定：建立專案後，把 Project URL 與 anon / publishable key 貼在這裡
+// =====================================================================
+const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+const SUPABASE_KEY = 'YOUR-ANON-OR-PUBLISHABLE-KEY';
+const TABLE = 'records', BUCKET = 'attachments';
+
+let sb = null;
+let cache = [], gCache = [];     // 工程案 / 團險
+let pLoaded = false, gLoaded = false;
+
+// ---------- 工具 ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtSize = n => n < 1024 ? n + ' B' : n < 1048576 ? (n/1024).toFixed(1) + ' KB' : (n/1048576).toFixed(1) + ' MB';
+const fmtAmt = n => (Number(n) || 0).toLocaleString('zh-TW');
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmtDT = iso => { if (!iso) return ''; const d = new Date(iso); return `${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+let toastTimer;
+function toast(msg, isErr = false, ms) {
+  const t = $('toast'); t.textContent = msg; t.classList.toggle('err', isErr); t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms || (isErr ? 5000 : 2200));
+}
+const fail = msg => toast(msg, true);
+function setConn(msg, isErr = false) { const c = $('connMsg'); c.hidden = !msg; c.textContent = msg || ''; c.classList.toggle('err', isErr); }
+function ask(msg, okText = '確定') {
+  return new Promise(res => {
+    $('askMsg').textContent = msg; $('askOk').textContent = okText; $('askModal').hidden = false;
+    const done = v => { $('askModal').hidden = true; $('askOk').onclick = $('askCancel').onclick = null; res(v); };
+    $('askOk').onclick = () => done(true); $('askCancel').onclick = () => done(false); $('askOk').focus();
+  });
+}
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+$('myName').value = lsGet('myName') || '';
+$('myName').addEventListener('change', () => lsSet('myName', $('myName').value.trim()));
+const myName = () => $('myName').value.trim();
+
+function downloadBlob(name, blob) {
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// ---------- 資料庫 ----------
+function applyRow(row) {
+  const rec = { ...(row.data || {}), id: row.id };
+  const list = row.kind === 'group' ? gCache : cache;
+  const i = list.findIndex(x => x.id === row.id);
+  if (i >= 0) list[i] = rec; else list.push(rec);
+}
+function removeRow(id) {
+  cache = cache.filter(x => x.id !== id); gCache = gCache.filter(x => x.id !== id);
+}
+async function saveRec(kind, id, data) {
+  const row = { id, kind, data, updated_at: new Date().toISOString() };
+  const { error } = await sb.from(TABLE).upsert(row);
+  if (error) throw error;
+  applyRow(row); kind === 'group' ? renderGroups() : render();
+}
+async function deleteRec(id) {
+  const { error } = await sb.from(TABLE).delete().eq('id', id);
+  if (error) throw error;
+  removeRow(id); render(); renderGroups();
+}
+async function loadAll() {
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from(TABLE).select('*').range(from, from + 999);
+    if (error) throw error;
+    rows.push(...data);
+    if (data.length < 1000) break;
+  }
+  cache = []; gCache = [];
+  rows.forEach(applyRow);
+  pLoaded = gLoaded = true;
+  render(); renderGroups();
+}
+function dbErrText(e) {
+  const m = String((e && (e.message || e.error_description)) || e || '');
+  if (/row-level security|permission|401|403|JWT|apikey/i.test(m)) return '沒有寫入權限，請確認 Supabase 設定（SQL 是否已執行、金鑰是否正確）。';
+  if (/fetch|network/i.test(m)) return '網路連線失敗，請稍後再試。';
+  return '操作失敗：' + m;
+}
+
+// ---------- 附件（存到 Supabase Storage）----------
+const MIME = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
+  svg: 'image/svg+xml', mp4: 'video/mp4', webm: 'video/webm', csv: 'text/csv', txt: 'text/plain',
+  doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', zip: 'application/zip' };
+const INLINE = /^(pdf|png|jpe?g|gif|webp|mp4|webm|txt)$/;
+const extOf = name => ((name.split('.').pop() || '') + '').toLowerCase().replace(/[^a-z0-9]/g, '');
+async function uploadFile(blob, name) {
+  if (blob.size > 50 * 1024 * 1024) throw new Error('檔案超過 50 MB 上限');
+  const ext = extOf(name) || 'bin';
+  const path = `${newId()}.${ext}`;   // 檔名用英數，原始檔名另外記錄
+  const type = MIME[ext] || blob.type || 'application/octet-stream';
+  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: type, upsert: false });
+  if (error) throw new Error(/row-level|policy|403/i.test(error.message) ? '沒有上傳權限（請確認 Supabase 設定）' : error.message);
+  return { name, size: blob.size, type, path };
+}
+function attUrl(a) {
+  const ext = extOf(a.name);
+  const opt = INLINE.test(ext) ? undefined : { download: a.name };
+  return sb.storage.from(BUCKET).getPublicUrl(a.path, opt).data.publicUrl;
+}
+const attLink = a => a.path ? `<a href="${esc(attUrl(a))}" target="_blank" rel="noopener">📎 ${esc(a.name)}</a>` : `<span class="clip">📎 ${esc(a.name)}（檔案未上傳）</span>`;
+async function deleteFiles(list = []) {
+  const paths = list.map(a => a.path).filter(Boolean);
+  if (paths.length) { try { await sb.storage.from(BUCKET).remove(paths); } catch {} }
+}
+function cleanupRemoved(oldList = [], newList = []) {
+  const keep = new Set(newList.map(a => a.path));
+  deleteFiles(oldList.filter(a => !keep.has(a.path)));
+}
+const cleanAtt = a => ({ name: a.name, size: a.size || 0, type: a.type || '', path: a.path || '' });
+
+function bindFileList(inputId, ulId, getArr, setArr) {
+  let pending = [];
+  const render = () => {
+    $(ulId).innerHTML = getArr().map((a, i) => `
+      <li><span class="name">${attLink(a)}</span><span class="size">${fmtSize(a.size)}</span>
+        <button type="button" class="sm danger" data-rm="${i}">移除</button></li>`).join('')
+      + pending.map(n => `<li class="pending"><span class="name">⏳ ${esc(n)} 上傳中…</span></li>`).join('');
+  };
+  $(ulId).addEventListener('click', e => {
+    const r = e.target.dataset.rm; if (r === undefined) return;
+    const arr = getArr(); arr.splice(r, 1); setArr(arr); render();
+  });
+  $(inputId).addEventListener('change', async e => {
+    const files = [...e.target.files]; e.target.value = '';
+    if (!sb) { fail('尚未連線到資料庫，無法上傳附件。'); return; }
+    for (const f of files) {
+      pending.push(f.name); render();
+      try { const meta = await uploadFile(f, f.name); setArr([...getArr(), meta]); }
+      catch (err) { fail(`${f.name}：${err.message || '上傳失敗'}`); }
+      finally { pending.splice(pending.indexOf(f.name), 1); render(); }
+    }
+  });
+  render.busy = () => pending.length > 0;
+  return render;
+}
+const whoLine = r => r.updatedAt ? `<div class="who">${esc(fmtDT(r.updatedAt))}${r.updatedBy ? ' · ' + esc(r.updatedBy) : ''}</div>` : '';
+
+// ---------- 到期計算 ----------
+const parseD = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d); };
+const todayD = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+function dueStateOf(to, status) {
+  if (status === '已完成' || !to) return '';
+  const limit = todayD(); limit.setMonth(limit.getMonth() + 1);
+  const end = parseD(to);
+  if (end < todayD()) return 'overdue';
+  if (end <= limit) return 'due';
+  return '';
+}
+function leftTextOf(to) {
+  const n = Math.round((parseD(to) - todayD()) / 86400000);
+  return n < 0 ? `已逾期 ${-n} 天` : n === 0 ? '今天到期' : `剩 ${n} 天`;
+}
+const worst = states => states.includes('overdue') ? 'overdue' : states.includes('due') ? 'due' : '';
+
+// ---------- 關鍵字比對 ----------
+const norm = s => String(s ?? '').toLowerCase().replace(/[\s\-_/\\.,，、。:：()（）#]+/g, '');
+const isAbbr = (q, target) => { let i = 0; for (const c of target) if (c === q[i]) i++; return i === q.length; };
+const splitTags = s => String(s || '').split(/[\s,，、]+/).filter(Boolean);
+function matchTokens(caseNo, texts, kwRaw) {
+  const tokens = splitTags(kwRaw).map(norm).filter(Boolean);
+  if (!tokens.length) return true;
+  const caseN = norm(caseNo), text = norm([caseNo, ...texts].join('|'));
+  return tokens.every(t => text.includes(t) || (caseNo && t.length >= 2 && isAbbr(t, caseN)));
+}
+
+// ---------- 匯出 Excel ----------
+function exportSheets(fname, sheets) {
+  if (window.XLSX) {
+    const wb = XLSX.utils.book_new();
+    for (const s of sheets) {
+      const ws = XLSX.utils.aoa_to_sheet([s.header, ...s.rows]);
+      if (s.cols) ws['!cols'] = s.cols.map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws, s.name);
+    }
+    XLSX.writeFile(wb, fname + '.xlsx');
+  } else {
+    for (const s of sheets) {
+      const csv = [s.header, ...s.rows].map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+      downloadBlob(`${fname}_${s.name}.csv`, new Blob(['﻿' + csv], { type: 'text/csv' }));
+    }
+    toast('Excel 元件未載入，已改存為 CSV（可用 Excel 開啟）');
+  }
+}
+
+// ---------- 分頁 ----------
+function showTab(t) {
+  ['p', 'g', 'm'].forEach(k => $('view-' + k).hidden = k !== t);
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  lsSet('tab', t);
+}
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+// =====================================================================
+// 工程案契約用保單
+// =====================================================================
+let editingId = null, attachments = [], currentList = [];
+const renderFileList = bindFileList('fFiles', 'fileList', () => attachments, a => attachments = a);
+
+function setNow() {
+  const d = new Date();
+  $('fDateFrom').value = ymd(d); $('fDateTo').value = ''; $('fDateTo').min = $('fDateFrom').value;
+  $('fTime').value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+$('fDateFrom').addEventListener('change', () => { $('fDateTo').min = $('fDateFrom').value; });
+const dFrom = r => r.dateFrom || r.date || '';
+const dTo = r => r.dateTo || r.date || '';
+const dueState = r => dueStateOf(dTo(r), r.status);
+const leftText = r => leftTextOf(dTo(r));
+
+function resetForm() {
+  editingId = null; attachments = [];
+  $('recordForm').reset(); setNow(); renderFileList();
+  $('formTitle').textContent = '新增保單紀錄'; $('editBanner').hidden = true;
+}
+$('resetBtn').onclick = resetForm;
+
+$('recordForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!sb) { fail('尚未連線到資料庫。'); return; }
+  if (renderFileList.busy()) { fail('附件仍在上傳中，請稍候。'); return; }
+  if ($('fDateTo').value < $('fDateFrom').value) { fail('日期（迄）不可早於日期（起）'); return; }
+  const now = new Date().toISOString();
+  const old = editingId ? cache.find(r => r.id === editingId) : null;
+  const rec = {
+    dateFrom: $('fDateFrom').value, dateTo: $('fDateTo').value, time: $('fTime').value, caseNo: $('fCase').value.trim(),
+    policyNo: $('fPolicy').value.trim(), status: $('fStatus').value,
+    client: $('fClient').value.trim(), tags: $('fTags').value.trim(), note: $('fNote').value.trim(),
+    attachments: attachments.map(cleanAtt), updatedAt: now, updatedBy: myName(), createdAt: (old && old.createdAt) || now,
+  };
+  $('saveBtn').disabled = true;
+  try {
+    await saveRec('policy', editingId || newId(), rec);
+    if (old) cleanupRemoved(old.attachments, rec.attachments);
+    toast(editingId ? '已更新' : '已新增'); resetForm();
+  } catch (err) { fail(dbErrText(err)); }
+  finally { $('saveBtn').disabled = false; }
+});
+
+function editRecord(id) {
+  const r = cache.find(x => x.id === id); if (!r) return;
+  showTab('p');
+  editingId = id;
+  $('fDateFrom').value = dFrom(r); $('fDateTo').value = dTo(r); $('fDateTo').min = dFrom(r);
+  $('fTime').value = r.time || ''; $('fCase').value = r.caseNo || '';
+  $('fPolicy').value = r.policyNo || ''; $('fStatus').value = r.status === '已完成' ? '已完成' : '履約中';
+  $('fClient').value = r.client || ''; $('fTags').value = r.tags || ''; $('fNote').value = r.note || '';
+  attachments = [...(r.attachments || [])]; renderFileList();
+  $('formTitle').textContent = '編輯保單紀錄'; $('editBanner').hidden = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function render() {
+  renderAlert();
+  if (!pLoaded) { $('tbody').innerHTML = '<tr><td colspan="8" class="empty">資料載入中…</td></tr>'; $('count').textContent = ''; return; }
+  const from = $('sDateFrom').value, to = $('sDateTo').value, time = $('sTime').value;
+  const cs = $('sCase').value.trim().toLowerCase(), kw = $('sKeyword').value, dueOnly = $('sDueOnly').checked;
+  const list = currentList = cache.filter(r =>
+    (!dueOnly || dueState(r)) &&
+    (!from || dTo(r) >= from) && (!to || dFrom(r) <= to) &&
+    (!time || r.time === time) &&
+    (!cs || String(r.caseNo || '').toLowerCase().includes(cs)) &&
+    matchTokens(r.caseNo, [r.tags, r.policyNo, r.client, r.note, r.status, ...(r.attachments || []).map(a => a.name)], kw)
+  ).sort((a, b) => (dFrom(b) + b.time).localeCompare(dFrom(a) + a.time));
+
+  $('tbody').innerHTML = list.length ? list.map(r => {
+    const files = (r.attachments || []).map(a => `<div>${attLink(a)}</div>`).join('') || '<span class="clip">—</span>';
+    const st = dueState(r);
+    return `<tr class="clickable ${st}">
+      <td style="white-space:nowrap">${esc(dFrom(r))}<br><span class="muted">~ ${esc(dTo(r))}</span>
+        ${st ? `<br><span class="left ${st}">⏰ ${leftText(r)}</span>` : ''}</td>
+      <td>${esc(r.time)}</td>
+      <td><b>${esc(r.caseNo)}</b>${splitTags(r.tags).map(t => `<br><span class="tag">${esc(t)}</span>`).join('')}</td>
+      <td>${esc(r.policyNo) || '—'}</td><td>${esc(r.client) || '—'}</td>
+      <td><span class="tag ${esc(r.status)}">${esc(r.status)}</span>${whoLine(r)}</td>
+      <td>${files}</td>
+      <td style="white-space:nowrap">
+        <button class="sm" data-edit="${esc(r.id)}">編輯</button>
+        <button class="sm danger" data-del="${esc(r.id)}">刪除</button>
+      </td></tr>` + (r.note ? `<tr><td></td><td colspan="7" class="muted">備註：${esc(r.note)}</td></tr>` : '');
+  }).join('') : `<tr><td colspan="8" class="empty">${cache.length ? '沒有符合條件的紀錄' : '尚無紀錄。在左側填寫日期、時間與承接案號後按「儲存」，即可新增第一筆。'}</td></tr>`;
+  $('count').textContent = `共 ${cache.length} 筆，符合 ${list.length} 筆`;
+}
+
+$('tbody').addEventListener('click', async e => {
+  const d = e.target.dataset;
+  if (d.edit) editRecord(d.edit);
+  else if (d.del) {
+    const r = cache.find(x => x.id === d.del); if (!r) return;
+    if (!await ask(`確定要刪除「${r.caseNo}」這筆紀錄（含附件）？刪除後所有人都看不到，無法復原。`, '刪除')) return;
+    try { await deleteRec(d.del); deleteFiles(r.attachments); if (editingId === d.del) resetForm(); toast('已刪除'); }
+    catch (err) { fail(dbErrText(err)); }
+  }
+});
+['sDateFrom', 'sDateTo', 'sTime', 'sCase', 'sKeyword'].forEach(id => $(id).addEventListener('input', render));
+$('sDueOnly').addEventListener('change', render);
+$('clearSearch').onclick = () => { ['sDateFrom', 'sDateTo', 'sTime', 'sCase', 'sKeyword'].forEach(id => $(id).value = ''); $('sDueOnly').checked = false; render(); };
+
+$('excelBtn').onclick = () => {
+  if (!currentList.length) { fail('目前沒有可匯出的紀錄'); return; }
+  exportSheets(`工程案契約用保單_${ymd(new Date())}`, [{
+    name: '工程案契約用保單',
+    header: ['承接案號', '案號縮寫／關鍵字', '日期（起）', '日期（迄）', '時間', '保單號碼', '客戶／被保險人', '狀態', '到期提醒', '附件', '備註'],
+    rows: currentList.map(r => [r.caseNo, r.tags || '', dFrom(r), dTo(r), r.time, r.policyNo || '', r.client || '', r.status,
+      dueState(r) ? leftText(r) : '', (r.attachments || []).map(a => a.name).join('、'), r.note || '']),
+    cols: [14, 18, 12, 12, 8, 16, 16, 8, 14, 30, 30],
+  }]);
+};
+
+// =====================================================================
+// 團險保單
+// =====================================================================
+let gEditingId = null, gAttachments = [], gMembers = [], gList = [];
+const gExpanded = new Set();
+const renderGFileList = bindFileList('gFiles', 'gFileList', () => gAttachments, a => gAttachments = a);
+
+const mFrom = (g, m) => m.dateFrom || g.dateFrom;
+const mTo = (g, m) => m.dateTo || g.dateTo;
+const memberState = (g, m) => dueStateOf(mTo(g, m), g.status);
+const groupState = g => worst([dueStateOf(g.dateTo, g.status), ...(g.members || []).map(m => memberState(g, m))]);
+const groupTotal = g => (g.members || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+
+const blankMember = () => ({ name: '', idNo: '', amount: '', dateFrom: '', dateTo: '', note: '' });
+function renderMembers() {
+  $('mBody').innerHTML = gMembers.length ? gMembers.map((m, i) => `<tr>
+    <td class="muted">${i + 1}</td>
+    <td><input data-i="${i}" data-f="name" value="${esc(m.name)}" aria-label="姓名"></td>
+    <td><input data-i="${i}" data-f="idNo" value="${esc(m.idNo)}" aria-label="身分證或員編"></td>
+    <td><input type="number" min="0" step="1" data-i="${i}" data-f="amount" value="${esc(m.amount)}" aria-label="保險金額"></td>
+    <td><input type="date" data-i="${i}" data-f="dateFrom" value="${esc(m.dateFrom)}" aria-label="個人起日"></td>
+    <td><input type="date" data-i="${i}" data-f="dateTo" value="${esc(m.dateTo)}" aria-label="個人迄日"></td>
+    <td><input data-i="${i}" data-f="note" value="${esc(m.note)}" aria-label="備註"></td>
+    <td><button type="button" class="sm danger" data-mrm="${i}" title="移除">✕</button></td></tr>`).join('')
+    : '<tr><td colspan="8" class="empty" style="padding:14px 0">尚未加入被保險人，按「＋ 新增一位」或從 Excel 匯入名單。</td></tr>';
+  updateMemberSum();
+}
+function updateMemberSum() {
+  const named = gMembers.filter(m => String(m.name).trim());
+  const total = named.reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  $('mSum').innerHTML = `共 <b>${named.length}</b> 人，保險金額合計 <b>${fmtAmt(total)}</b> 元`;
+}
+$('mBody').addEventListener('input', e => { const { i, f } = e.target.dataset; if (i === undefined) return; gMembers[i][f] = e.target.value; updateMemberSum(); });
+$('mBody').addEventListener('click', e => { const i = e.target.dataset.mrm; if (i === undefined) return; gMembers.splice(i, 1); renderMembers(); });
+$('mAddBtn').onclick = () => {
+  gMembers.push(blankMember()); renderMembers();
+  const inputs = $('mBody').querySelectorAll('input[data-f="name"]'); if (inputs.length) inputs[inputs.length - 1].focus();
+};
+
+const M_HEADER = ['姓名', '身分證/員編', '保險金額', '個人起日', '個人迄日', '備註'];
+$('mTemplateBtn').onclick = () => exportSheets('團險名單範本', [{ name: '名單', header: M_HEADER, rows: [['王小明', 'A123456789', 1000000, '', '', '起迄留空＝同保單期間']], cols: [12, 16, 12, 12, 12, 24] }]);
+$('mImportBtn').onclick = () => { if (!window.XLSX) { fail('Excel 元件尚未載入，請重新整理頁面後再試。'); return; } $('mImportFile').click(); };
+const normDate = v => { const m = String(v ?? '').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m ? `${m[1]}-${pad(m[2])}-${pad(m[3])}` : ''; };
+$('mImportFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+    if (!rows.length) { fail('檔案中沒有資料'); return; }
+    const getDate = (r, i) => { if (i < 0) return ''; const v = r[i]; return v instanceof Date ? ymd(new Date(v.getTime() + 3600000)) : normDate(v); };
+    const hdr = rows[0].map(h => String(h).trim());
+    const find = (...keys) => hdr.findIndex(h => keys.some(k => h.includes(k)));
+    let idx = { name: find('姓名', '名字'), idNo: find('身分', '員編', '編號', 'ID', 'id'), amount: find('金額', '保額'), from: find('起'), to: find('迄', '訖', '止'), note: find('備註') };
+    let body = rows.slice(1);
+    if (idx.name < 0) { idx = { name: 0, idNo: 1, amount: 2, from: 3, to: 4, note: 5 }; body = rows; }
+    const get = (r, i) => i >= 0 ? String(r[i] ?? '').trim() : '';
+    let n = 0;
+    for (const r of body) {
+      const name = get(r, idx.name); if (!name) continue;
+      gMembers.push({ name, idNo: get(r, idx.idNo), amount: get(r, idx.amount).replace(/[^\d.]/g, ''), dateFrom: getDate(r, idx.from), dateTo: getDate(r, idx.to), note: get(r, idx.note) });
+      n++;
+    }
+    gMembers = gMembers.filter(m => m.name || m.idNo || m.amount);
+    renderMembers(); toast(`已匯入 ${n} 位被保險人，記得按「儲存團險保單」`, false, 4000);
+  } catch { fail('匯入失敗，請確認檔案格式（可先下載名單範本）'); }
+};
+
+function resetGForm() {
+  gEditingId = null; gAttachments = []; gMembers = [];
+  $('gForm').reset(); renderGFileList(); renderMembers();
+  $('gFormTitle').textContent = '新增團險保單'; $('gEditBanner').hidden = true;
+}
+$('gResetBtn').onclick = resetGForm;
+$('gDateFrom').addEventListener('change', () => { $('gDateTo').min = $('gDateFrom').value; });
+
+$('gForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!sb) { fail('尚未連線到資料庫。'); return; }
+  if (renderGFileList.busy()) { fail('附件仍在上傳中，請稍候。'); return; }
+  const gf = $('gDateFrom').value, gt = $('gDateTo').value;
+  if (gt < gf) { fail('保單期間（迄）不可早於（起）'); return; }
+  const members = gMembers.filter(m => String(m.name).trim() || String(m.idNo).trim() || String(m.amount).trim());
+  for (const [i, m] of members.entries()) {
+    if (!String(m.name).trim()) { fail(`名單第 ${i + 1} 位缺少姓名`); return; }
+    if ((m.dateTo || gt) < (m.dateFrom || gf)) { fail(`${m.name} 的個人迄日早於起日`); return; }
+  }
+  const now = new Date().toISOString();
+  const old = gEditingId ? gCache.find(g => g.id === gEditingId) : null;
+  const rec = {
+    caseNo: $('gCase').value.trim(), policyNo: $('gPolicy').value.trim(), company: $('gCompany').value.trim(),
+    dateFrom: gf, dateTo: gt, status: $('gStatus').value, tags: $('gTags').value.trim(), note: $('gNote').value.trim(),
+    attachments: gAttachments.map(cleanAtt), updatedAt: now, updatedBy: myName(), createdAt: (old && old.createdAt) || now,
+    members: members.map(m => ({ name: String(m.name).trim(), idNo: String(m.idNo || '').trim(), amount: Number(m.amount) || 0,
+                                 dateFrom: m.dateFrom || '', dateTo: m.dateTo || '', note: String(m.note || '').trim() })),
+  };
+  $('gSaveBtn').disabled = true;
+  try {
+    await saveRec('group', gEditingId || newId(), rec);
+    if (old) cleanupRemoved(old.attachments, rec.attachments);
+    toast(gEditingId ? '團險保單已更新' : '團險保單已新增'); resetGForm();
+  } catch (err) { fail(dbErrText(err)); }
+  finally { $('gSaveBtn').disabled = false; }
+});
+
+function editGroup(id) {
+  const g = gCache.find(x => x.id === id); if (!g) return;
+  showTab('g');
+  gEditingId = id;
+  $('gCase').value = g.caseNo || ''; $('gPolicy').value = g.policyNo || ''; $('gCompany').value = g.company || '';
+  $('gDateFrom').value = g.dateFrom || ''; $('gDateTo').value = g.dateTo || ''; $('gDateTo').min = g.dateFrom || '';
+  $('gStatus').value = g.status === '已完成' ? '已完成' : '履約中';
+  $('gTags').value = g.tags || ''; $('gNote').value = g.note || '';
+  gAttachments = [...(g.attachments || [])]; renderGFileList();
+  gMembers = (g.members || []).map(m => ({ ...blankMember(), ...m, amount: m.amount ?? '' })); renderMembers();
+  $('gFormTitle').textContent = '編輯團險保單'; $('gEditBanner').hidden = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderGroups() {
+  renderAlert(); renderPersons();
+  if (!gLoaded) { $('gBody').innerHTML = '<tr><td colspan="9" class="empty">資料載入中…</td></tr>'; $('gCount').textContent = ''; return; }
+  const from = $('gsDateFrom').value, to = $('gsDateTo').value;
+  const cs = $('gsCase').value.trim().toLowerCase(), kw = $('gsKeyword').value, dueOnly = $('gsDueOnly').checked;
+  gList = gCache.filter(g =>
+    (!dueOnly || groupState(g)) &&
+    (!from || g.dateTo >= from) && (!to || g.dateFrom <= to) &&
+    (!cs || String(g.caseNo || '').toLowerCase().includes(cs)) &&
+    matchTokens(g.caseNo, [g.tags, g.policyNo, g.company, g.note, g.status, ...(g.attachments || []).map(a => a.name),
+                           ...(g.members || []).flatMap(m => [m.name, m.idNo])], kw)
+  ).sort((a, b) => String(b.dateFrom).localeCompare(String(a.dateFrom)));
+
+  $('gBody').innerHTML = gList.length ? gList.map(g => {
+    const own = dueStateOf(g.dateTo, g.status), st = groupState(g);
+    const dueMembers = (g.members || []).filter(m => memberState(g, m) && mTo(g, m) !== g.dateTo).length;
+    const files = (g.attachments || []).map(a => `<div>${attLink(a)}</div>`).join('') || '<span class="clip">—</span>';
+    const open = gExpanded.has(g.id);
+    let html = `<tr class="clickable ${st}">
+      <td style="white-space:nowrap">${esc(g.dateFrom)}<br><span class="muted">~ ${esc(g.dateTo)}</span>
+        ${own ? `<br><span class="left ${own}">⏰ ${leftTextOf(g.dateTo)}</span>` : ''}
+        ${dueMembers ? `<br><span class="left due">👤 ${dueMembers} 人個人到期</span>` : ''}</td>
+      <td><b>${esc(g.caseNo)}</b>${splitTags(g.tags).map(t => `<br><span class="tag">${esc(t)}</span>`).join('')}</td>
+      <td>${esc(g.policyNo) || '—'}</td><td>${esc(g.company)}</td>
+      <td class="num">${(g.members || []).length}</td><td class="num">${fmtAmt(groupTotal(g))}</td>
+      <td><span class="tag ${esc(g.status)}">${esc(g.status)}</span>${whoLine(g)}</td>
+      <td>${files}</td>
+      <td style="white-space:nowrap">
+        <button class="sm" data-gexp="${esc(g.id)}">${open ? '收合名單' : '名單'}</button>
+        <button class="sm" data-gedit="${esc(g.id)}">編輯</button>
+        <button class="sm danger" data-gdel="${esc(g.id)}">刪除</button>
+      </td></tr>`;
+    if (open) {
+      html += `<tr class="detail"><td colspan="9">
+        ${g.note ? `<div class="muted" style="margin-top:6px">備註：${esc(g.note)}</div>` : ''}
+        <div class="tablewrap"><table class="subtable"><thead><tr><th>#</th><th>姓名</th><th>身分證 / 員編</th><th class="num">保險金額</th><th>個人期間</th><th>提醒</th><th>備註</th></tr></thead><tbody>
+        ${(g.members || []).map((m, i) => { const s = memberState(g, m); return `<tr class="${s}">
+          <td class="muted">${i + 1}</td><td>${esc(m.name)}</td><td>${esc(m.idNo) || '—'}</td><td class="num">${fmtAmt(m.amount)}</td>
+          <td style="white-space:nowrap">${esc(mFrom(g, m))} ~ ${esc(mTo(g, m))}${m.dateFrom || m.dateTo ? '' : ' <span class="muted">(同保單)</span>'}</td>
+          <td>${s ? `<span class="left ${s}">${leftTextOf(mTo(g, m))}</span>` : ''}</td><td class="muted">${esc(m.note)}</td></tr>`; }).join('')
+          || '<tr><td colspan="7" class="empty" style="padding:12px">尚無被保險人</td></tr>'}
+        <tr><td colspan="3" class="total">合計</td><td class="num total">${fmtAmt(groupTotal(g))}</td><td colspan="3"></td></tr>
+        </tbody></table></div></td></tr>`;
+    }
+    return html;
+  }).join('') : `<tr><td colspan="9" class="empty">${gCache.length ? '沒有符合條件的團險保單' : '尚無團險保單。在上方填寫承接案號、投保單位與保單期間，加入被保險人後儲存。'}</td></tr>`;
+  const people = gList.reduce((s, g) => s + (g.members || []).length, 0);
+  $('gCount').textContent = `共 ${gCache.length} 張，符合 ${gList.length} 張（被保險人 ${people} 人次，保額合計 ${fmtAmt(gList.reduce((s, g) => s + groupTotal(g), 0))} 元）`;
+}
+
+$('gBody').addEventListener('click', async e => {
+  const d = e.target.dataset;
+  if (d.gexp) { gExpanded.has(d.gexp) ? gExpanded.delete(d.gexp) : gExpanded.add(d.gexp); renderGroups(); }
+  else if (d.gedit) editGroup(d.gedit);
+  else if (d.gdel) {
+    const g = gCache.find(x => x.id === d.gdel); if (!g) return;
+    if (!await ask(`確定要刪除團險保單「${g.caseNo}」（含 ${(g.members || []).length} 位被保險人與附件）？刪除後無法復原。`, '刪除')) return;
+    try { await deleteRec(d.gdel); deleteFiles(g.attachments); if (gEditingId === d.gdel) resetGForm(); toast('已刪除'); }
+    catch (err) { fail(dbErrText(err)); }
+  }
+});
+['gsDateFrom', 'gsDateTo', 'gsCase', 'gsKeyword'].forEach(id => $(id).addEventListener('input', renderGroups));
+$('gsDueOnly').addEventListener('change', renderGroups);
+$('gsClear').onclick = () => { ['gsDateFrom', 'gsDateTo', 'gsCase', 'gsKeyword'].forEach(id => $(id).value = ''); $('gsDueOnly').checked = false; renderGroups(); };
+
+$('gExcelBtn').onclick = () => {
+  if (!gList.length) { fail('目前沒有可匯出的團險保單'); return; }
+  exportSheets(`團險保單_${ymd(new Date())}`, [{
+    name: '團險保單',
+    header: ['承接案號', '案號縮寫／關鍵字', '團險保單號碼', '投保單位', '保單起日', '保單迄日', '狀態', '到期提醒', '人數', '保額合計', '附件', '備註'],
+    rows: gList.map(g => { const s = dueStateOf(g.dateTo, g.status); return [g.caseNo, g.tags || '', g.policyNo || '', g.company, g.dateFrom, g.dateTo, g.status,
+      s ? leftTextOf(g.dateTo) : '', (g.members || []).length, groupTotal(g), (g.attachments || []).map(a => a.name).join('、'), g.note || '']; }),
+    cols: [14, 16, 16, 20, 12, 12, 8, 12, 6, 14, 30, 30],
+  }, {
+    name: '被保險人明細',
+    header: ['承接案號', '團險保單號碼', '投保單位', '姓名', '身分證/員編', '保險金額', '個人起日', '個人迄日', '到期提醒', '保單狀態', '備註'],
+    rows: gList.flatMap(g => (g.members || []).map(m => { const s = memberState(g, m); return [g.caseNo, g.policyNo || '', g.company, m.name, m.idNo || '',
+      Number(m.amount) || 0, mFrom(g, m), mTo(g, m), s ? leftTextOf(mTo(g, m)) : '', g.status, m.note || '']; })),
+    cols: [14, 16, 20, 10, 14, 12, 12, 12, 12, 8, 24],
+  }]);
+};
+
+// =====================================================================
+// 團險個人查詢（依姓名區分）
+// =====================================================================
+const pExpanded = new Set();
+let pList = [];
+function buildPersons() {
+  const map = new Map(), today = ymd(new Date());
+  for (const g of gCache) for (const m of g.members || []) {
+    const key = 'n:' + norm(m.name);
+    if (!map.has(key)) map.set(key, { key, name: m.name, ids: new Set(), items: [] });
+    const p = map.get(key);
+    if (m.idNo) p.ids.add(m.idNo);
+    const from = mFrom(g, m), to = mTo(g, m), amount = Number(m.amount) || 0;
+    const active = g.status !== '已完成' && from <= today && to >= today;
+    p.items.push({ g, m, from, to, amount, active, st: memberState(g, m) });
+  }
+  return [...map.values()].map(p => {
+    p.idNo = [...p.ids].join('、');
+    p.items.sort((a, b) => String(a.from).localeCompare(String(b.from)));
+    p.total = p.items.reduce((s, i) => s + i.amount, 0);
+    p.activeTotal = p.items.filter(i => i.active).reduce((s, i) => s + i.amount, 0);
+    p.minFrom = p.items.reduce((s, i) => i.from < s ? i.from : s, p.items[0].from);
+    p.maxTo = p.items.reduce((s, i) => i.to > s ? i.to : s, p.items[0].to);
+    p.st = worst(p.items.map(i => i.st));
+    p.nextDue = p.items.filter(i => i.st).sort((a, b) => a.to.localeCompare(b.to))[0] || null;
+    return p;
+  }).sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+}
+function renderPersons() {
+  if (!gLoaded) { $('pBody').innerHTML = '<tr><td colspan="8" class="empty">資料載入中…</td></tr>'; $('pCount').textContent = ''; return; }
+  const all = buildPersons(), today = ymd(new Date());
+  const kw = $('psKeyword').value, activeOnly = $('psActiveOnly').checked, dueOnly = $('psDueOnly').checked;
+  pList = all.filter(p => (!activeOnly || p.items.some(i => i.active)) && (!dueOnly || p.st) &&
+    matchTokens('', [p.name, p.idNo, ...p.items.flatMap(i => [i.g.company, i.g.caseNo, i.g.policyNo])], kw));
+  $('pBody').innerHTML = pList.length ? pList.map((p, idx) => {
+    const open = pExpanded.has(p.key);
+    let html = `<tr class="clickable ${p.st}">
+      <td><b>${esc(p.name)}</b></td><td>${esc(p.idNo) || '—'}</td>
+      <td class="num">${p.items.length}</td><td class="num total">${fmtAmt(p.total)}</td><td class="num">${fmtAmt(p.activeTotal)}</td>
+      <td style="white-space:nowrap">${esc(p.minFrom)} ~ ${esc(p.maxTo)}</td>
+      <td>${p.nextDue ? `<span class="left ${p.nextDue.st}">⏰ ${esc(p.nextDue.g.caseNo)} ${leftTextOf(p.nextDue.to)}</span>` : ''}</td>
+      <td><button class="sm" data-pexp="${idx}">${open ? '收合' : '明細'}</button></td></tr>`;
+    if (open) {
+      html += `<tr class="detail"><td colspan="8"><div class="tablewrap">
+        <table class="subtable"><thead><tr><th>承接案號</th><th>身分證 / 員編</th><th>團險保單號碼</th><th>投保單位</th><th class="num">保險金額</th><th>個人期間</th><th>狀態</th><th>提醒</th><th></th></tr></thead><tbody>
+        ${p.items.map(i => `<tr class="${i.st}">
+          <td>${esc(i.g.caseNo)}</td><td>${esc(i.m.idNo) || '—'}</td><td>${esc(i.g.policyNo) || '—'}</td><td>${esc(i.g.company)}</td>
+          <td class="num">${fmtAmt(i.amount)}</td><td style="white-space:nowrap">${esc(i.from)} ~ ${esc(i.to)}</td>
+          <td>${i.active ? '<span class="tag 有效">有效中</span>' : `<span class="tag ${esc(i.g.status)}">${i.g.status === '已完成' ? '已完成' : (i.from > today ? '尚未生效' : '已過期')}</span>`}</td>
+          <td>${i.st ? `<span class="left ${i.st}">${leftTextOf(i.to)}</span>` : ''}</td>
+          <td><button class="sm" data-pgo="${esc(i.g.id)}">開啟保單</button></td></tr>`).join('')}
+        <tr><td colspan="4" class="total">合計</td><td class="num total">${fmtAmt(p.total)}</td><td colspan="4" class="muted">目前有效：${fmtAmt(p.activeTotal)}</td></tr>
+        </tbody></table></div></td></tr>`;
+    }
+    return html;
+  }).join('') : `<tr><td colspan="8" class="empty">${all.length ? '沒有符合條件的人員' : '尚無團險被保險人資料。在「團險保單」分頁加入名單後，這裡會自動彙總每個人的保額。'}</td></tr>`;
+  $('pCount').textContent = `共 ${all.length} 人，符合 ${pList.length} 人`;
+}
+$('pBody').addEventListener('click', e => {
+  const d = e.target.dataset;
+  if (d.pexp !== undefined) { const k = pList[d.pexp].key; pExpanded.has(k) ? pExpanded.delete(k) : pExpanded.add(k); renderPersons(); }
+  else if (d.pgo) editGroup(d.pgo);
+});
+$('psKeyword').addEventListener('input', renderPersons);
+$('psActiveOnly').addEventListener('change', renderPersons);
+$('psDueOnly').addEventListener('change', renderPersons);
+$('psClear').onclick = () => { $('psKeyword').value = ''; $('psActiveOnly').checked = $('psDueOnly').checked = false; renderPersons(); };
+
+$('pExcelBtn').onclick = () => {
+  if (!pList.length) { fail('目前沒有可匯出的人員'); return; }
+  exportSheets(`團險個人保額_${ymd(new Date())}`, [{
+    name: '個人保額彙總',
+    header: ['姓名', '身分證/員編', '投保件數', '保額總額', '目前有效保額', '最早起日', '最晚迄日', '到期提醒'],
+    rows: pList.map(p => [p.name, p.idNo || '', p.items.length, p.total, p.activeTotal, p.minFrom, p.maxTo, p.nextDue ? `${p.nextDue.g.caseNo} ${leftTextOf(p.nextDue.to)}` : '']),
+    cols: [10, 14, 8, 14, 14, 12, 12, 24],
+  }, {
+    name: '個人投保明細',
+    header: ['姓名', '身分證/員編', '承接案號', '團險保單號碼', '投保單位', '保險金額', '個人起日', '個人迄日', '是否有效', '到期提醒'],
+    rows: pList.flatMap(p => p.items.map(i => [p.name, i.m.idNo || '', i.g.caseNo, i.g.policyNo || '', i.g.company, i.amount, i.from, i.to, i.active ? '有效中' : '', i.st ? leftTextOf(i.to) : ''])),
+    cols: [10, 14, 14, 16, 20, 12, 12, 12, 8, 12],
+  }]);
+};
+
+// =====================================================================
+// 到期提醒 + 桌面通知
+// =====================================================================
+function dueItems() {
+  const items = [];
+  for (const r of cache) { const st = dueState(r); if (st) items.push({ kind: 'p', label: '工程案', id: r.id, to: dTo(r), st, plain: r.caseNo,
+    text: `<b>${esc(r.caseNo)}</b>${r.policyNo ? '／' + esc(r.policyNo) : ''}${r.client ? '／' + esc(r.client) : ''}` }); }
+  for (const g of gCache) {
+    const st = dueStateOf(g.dateTo, g.status);
+    if (st) items.push({ kind: 'g', label: '團險', id: g.id, to: g.dateTo, st, plain: `${g.caseNo} ${g.company}`,
+      text: `<b>${esc(g.caseNo)}</b>／${esc(g.company)}（${(g.members || []).length} 人）` });
+    for (const m of g.members || []) {
+      const ms = memberState(g, m);
+      if (ms && mTo(g, m) !== g.dateTo) items.push({ kind: 'm', label: '團險個人', id: g.id, to: mTo(g, m), st: ms, plain: `${m.name}（${g.caseNo}）`,
+        text: `<b>${esc(m.name)}</b>${m.idNo ? '（' + esc(m.idNo) + '）' : ''}／${esc(g.caseNo)} ${esc(g.company)}` });
+    }
+  }
+  return items.sort((a, b) => a.to.localeCompare(b.to));
+}
+function renderAlert() {
+  const list = dueItems();
+  $('alertBox').hidden = !list.length;
+  if (!list.length) return;
+  const over = list.filter(i => i.st === 'overdue').length;
+  $('alertTitle').textContent = `⏰ 到期提醒：${list.length} 項將於 1 個月內到期` + (over ? `（其中 ${over} 項已逾期）` : '');
+  const MAX = 30;
+  $('alertList').innerHTML = list.slice(0, MAX).map(i =>
+    `<li><span class="kind">${i.label}</span><a href="#" data-kind="${i.kind}" data-id="${esc(i.id)}">${i.text}</a>
+      — 迄 ${esc(i.to)}，<span class="left ${i.st}">${leftTextOf(i.to)}</span></li>`).join('')
+    + (list.length > MAX ? `<li class="muted">…還有 ${list.length - MAX} 項，請按「只顯示這些保單」查看</li>` : '');
+  $('notifyBtn').hidden = !('Notification' in window) || Notification.permission === 'granted';
+}
+$('alertList').addEventListener('click', e => {
+  const a = e.target.closest('[data-kind]'); if (!a) return;
+  e.preventDefault();
+  a.dataset.kind === 'p' ? editRecord(a.dataset.id) : editGroup(a.dataset.id);
+});
+$('showDueBtn').onclick = () => { $('sDueOnly').checked = $('gsDueOnly').checked = $('psDueOnly').checked = true; render(); renderGroups(); };
+$('notifyBtn').onclick = async () => {
+  const p = await Notification.requestPermission();
+  if (p === 'granted') { lsSet('lastNotify', ''); desktopNotify(); renderAlert(); }
+};
+function desktopNotify() {
+  const list = dueItems();
+  if (!list.length || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const today = new Date().toDateString();
+  if (lsGet('lastNotify') === today) return;
+  lsSet('lastNotify', today);
+  new Notification('保險單到期提醒', {
+    body: list.slice(0, 5).map(i => `[${i.label}] ${i.plain}：${leftTextOf(i.to)}`).join('\n') + (list.length > 5 ? `\n…共 ${list.length} 項` : ''),
+  });
+}
+
+// =====================================================================
+// 備份：匯出目前資料；匯入本機版 / 遷移檔（含附件內容者會一併上傳）
+// =====================================================================
+document.querySelectorAll('.exportBackup').forEach(b => b.onclick = () =>
+  downloadBlob(`保險單資料備份_${ymd(new Date())}.json`, new Blob([JSON.stringify({ version: 4, records: cache, groups: gCache })], { type: 'application/json' })));
+document.querySelectorAll('.importBackup').forEach(b => b.onclick = () => $('importFile').click());
+
+function dataUrlToBlob(u) {
+  const [h, b] = String(u).split(','); const s = atob(b || ''); const arr = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) arr[i] = s.charCodeAt(i);
+  return new Blob([arr], { type: (h.match(/data:([^;]+)/) || [])[1] || '' });
+}
+async function convertAtts(list = []) {
+  const out = [];
+  for (const a of list) {
+    if (a.data) {
+      try { out.push(await uploadFile(dataUrlToBlob(a.data), a.name)); }
+      catch (err) { fail(`附件「${a.name}」未匯入：${err.message || '上傳失敗'}`); }
+    } else if (a.path) out.push(cleanAtt(a));
+  }
+  return out;
+}
+$('importFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (!sb) { fail('尚未連線到資料庫。'); return; }
+  let raw;
+  try { raw = JSON.parse(await f.text()); } catch { fail('匯入失敗：檔案格式不正確'); return; }
+  const records = Array.isArray(raw) ? raw : (raw.records || []);
+  const groups = Array.isArray(raw) ? [] : (raw.groups || []);
+  const restore = raw.version === 4;
+  if (!await ask(`將匯入工程案契約用保單 ${records.length} 筆、團險保單 ${groups.length} 張。\n${restore ? '相同編號的資料會被覆蓋。' : '附件會一併上傳，可能需要幾分鐘，請勿關閉頁面。'}`, '開始匯入')) return;
+  let done = 0; const total = records.length + groups.length;
+  try {
+    for (const [kind, list] of [['policy', records], ['group', groups]]) {
+      for (const r of list) {
+        const { id, ...rest } = r;
+        if (!rest.dateFrom && rest.date) { rest.dateFrom = rest.date; rest.dateTo = rest.date; delete rest.date; }
+        rest.attachments = await convertAtts(r.attachments);
+        rest.updatedAt = rest.updatedAt || new Date().toISOString();
+        rest.updatedBy = rest.updatedBy && !/^u_/.test(rest.updatedBy) ? rest.updatedBy : myName();
+        await saveRec(kind, restore && typeof id === 'string' ? id : newId(), rest);
+        toast(`匯入中… ${++done} / ${total}`, false, 60000);
+      }
+    }
+    toast(`匯入完成，共 ${done} 筆`);
+  } catch (err) { fail(dbErrText(err)); }
+};
+
+// =====================================================================
+// 啟動
+// =====================================================================
+(async function boot() {
+  const tab = lsGet('tab');
+  showTab(['p', 'g', 'm'].includes(tab) ? tab : 'p');
+  resetForm(); resetGForm(); render(); renderGroups();
+  if (SUPABASE_URL.includes('YOUR-PROJECT') || !window.supabase) {
+    setConn(!window.supabase ? '無法載入資料庫元件，請檢查網路後重新整理。' : '尚未設定資料庫：請在 index.html 開頭填入 Supabase 的網址與金鑰。', true);
+    return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+  try { await loadAll(); setConn(''); desktopNotify(); }
+  catch (err) { setConn('無法讀取資料：' + dbErrText(err), true); return; }
+  // 即時同步：其他人修改後自動更新
+  sb.channel('records-sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, p => {
+      if (p.eventType === 'DELETE') removeRow(p.old.id); else applyRow(p.new);
+      render(); renderGroups();
+    })
+    .subscribe();
+  // 備援：每 2 分鐘重新整理一次；每小時更新到期天數
+  setInterval(() => loadAll().catch(() => {}), 120000);
+  setInterval(() => { render(); renderGroups(); desktopNotify(); }, 3600000);
+})();
+</script>
+</body>
+</html>
